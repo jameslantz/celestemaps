@@ -20,4 +20,4 @@
 
 # stiknork/0
 	stik_0= 							Stiknork's Beautiful Boys
-	stik_0_1= 							Map 1
+	stik_0_1= 							Watering Hole
