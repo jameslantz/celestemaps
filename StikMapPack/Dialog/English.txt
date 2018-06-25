@@ -22,4 +22,4 @@
 	stik_0= 							Stik's Maps
 	stik_0_1= 							Watering Hole
 	stik_0_2=							Anger Management
-	stik_0_3=							NAME TEMP 
+	stik_0_3=							Windy Walkways 
