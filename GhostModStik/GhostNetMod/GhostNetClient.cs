@@ -49,7 +49,8 @@ namespace Celeste.Mod.Ghost.Net {
         public Dictionary<uint, uint> GhostUpdateIndices = new Dictionary<uint, uint>();
         public Dictionary<int, float> GhostDashTimes = new Dictionary<int, float>();
 
-        public List<GhostTouchSwitch> GhostTouchSwitches = new List<GhostTouchSwitch>(); 
+        public List<GhostTouchSwitch> GhostTouchSwitches = new List<GhostTouchSwitch>();
+        public bool TouchedGhostSwitch = false; 
 
         private bool WasPaused = false;
 
@@ -443,6 +444,7 @@ namespace Celeste.Mod.Ghost.Net {
             => player =>
         {
             Logger.Log(LogLevel.Info, "ghostnet-c", "Running OnPlayerTouchSwitch");
+            TouchedGhostSwitch = true; 
             SendUTouchPress((uint)touch.tIdx, PlayerID); 
         };
 
@@ -591,6 +593,18 @@ namespace Celeste.Mod.Ghost.Net {
             Connection.SendUpdate(frame, true);
 
             UpdateIndex++;
+        }
+
+        public virtual void SendUPlayerDeath(uint with)
+        {
+            if (Connection == null)
+                return;
+
+            Connection.SendUpdate(new GhostNetFrame {
+                new ChunkUPlayerDeath {
+                    With = with
+                }
+            }, true);
         }
 
         public virtual void SendUActionCollision(uint with, bool head) {
@@ -763,6 +777,11 @@ namespace Celeste.Mod.Ghost.Net {
             {
                 Logger.Log(LogLevel.Info, "ghostnet-c", "Running HandleUTouchPress");
                 HandleUTouchPress(con, frame);
+            }
+
+            if (frame.Has<ChunkUPlayerDeath>())
+            {
+                HandleUPlayerDeath(con, frame);
             }
 
             if (frame.Has<ChunkUAudioPlay>())
@@ -1068,6 +1087,16 @@ namespace Celeste.Mod.Ghost.Net {
             }
         }
 
+        public virtual void HandleUPlayerDeath(GhostNetConnection con, GhostNetFrame frame)
+        {
+            ChunkUTouchPress touchPress = frame;
+            if (Player.CollideCheck<MultiplayerDeathTrigger>())
+            {
+                if(!Player.Dead)
+                    Player.Die(new Vector2(0, 0)); 
+            }
+        }
+
         public virtual void HandleUAudioPlay(GhostNetConnection con, GhostNetFrame frame) {
             if (Player == null)
                 return;
@@ -1207,6 +1236,8 @@ namespace Celeste.Mod.Ghost.Net {
             On.Celeste.Level.LoadLevel -= OnLoadLevel;
             Everest.Events.Level.OnExit -= OnExitLevel;
             Everest.Events.Level.OnComplete -= OnCompleteLevel;
+            Everest.Events.Level.OnTransitionTo -= OnTransitionTo; 
+            Everest.Events.Player.OnDie -= OnDie;
             TextInput.OnInput -= OnTextInput;
 
             OnExitLevel(null, null, LevelExit.Mode.SaveAndQuit, null, null);
@@ -1264,6 +1295,26 @@ namespace Celeste.Mod.Ghost.Net {
             Logger.Log(LogLevel.Info, "ghost-c", "Leaving level");
 
             SendMPlayer(levelExit: mode);
+        }
+
+        public void OnDie(Player player)
+        {
+            if (Connection == null)
+                return;
+
+            if (!player.CollideCheck<MultiplayerDeathTrigger>())
+                return; 
+
+            if(TouchedGhostSwitch)
+            {
+                TouchedGhostSwitch = false; 
+                Logger.Log(LogLevel.Info, "ghost-c", "Died in level");
+                SendUPlayerDeath(PlayerID);
+            }
+            else
+            {
+                Logger.Log(LogLevel.Info, "ghost-c", "Died in level, NO SEND");
+            }
         }
 
         public void OnCompleteLevel(Level level) {
@@ -1332,11 +1383,19 @@ namespace Celeste.Mod.Ghost.Net {
             On.Celeste.Level.LoadLevel += OnLoadLevel;
             Everest.Events.Level.OnExit += OnExitLevel;
             Everest.Events.Level.OnComplete += OnCompleteLevel;
+            Everest.Events.Player.OnDie += OnDie;
+            Everest.Events.Level.OnTransitionTo += OnTransitionTo;
             TextInput.OnInput += OnTextInput;
 
             if (Engine.Instance != null && Engine.Scene is Level)
                 OnLoadLevel(null, (Level) Engine.Scene, Player.IntroTypes.Transition, true);
 
+        }
+
+        private void OnTransitionTo(Level level, LevelData next, Vector2 direction)
+        {
+            TouchedGhostSwitch = false;
+            Logger.Log(LogLevel.Info, "Transition", "Reset Ghost Touch!");
         }
 
         public void Stop() {

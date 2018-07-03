@@ -288,6 +288,9 @@ namespace Celeste.Mod.Ghost.Net {
             if (frame.Has<ChunkUTouchPress>())
                 HandleUTouchPress(con, frame);
 
+            if (frame.Has<ChunkUPlayerDeath>())
+                HandleUPlayerDeath(con, frame);
+
             // TODO: Restrict players from abusing UAudioPlay and UParticles propagation.
             if (frame.Has<ChunkUAudioPlay>()) {
                 // Propagate audio to all active players in the same room.
@@ -475,6 +478,26 @@ namespace Celeste.Mod.Ghost.Net {
             // Allow outdated press frames to be handled.
 
             ChunkUTouchPress press = frame;
+
+            ChunkMPlayer otherPlayer;
+            if (!PlayerMap.TryGetValue(press.With, out otherPlayer) || otherPlayer == null ||
+                frame.MPlayer.SID != otherPlayer.SID ||
+                frame.MPlayer.Mode != otherPlayer.Mode
+            )
+            {
+                // Player not in the same room.
+                return;
+            }
+
+            // Propagate update to all active players in the same room.
+            frame.PropagateU = true;
+        }
+
+        public virtual void HandleUPlayerDeath(GhostNetConnection con, GhostNetFrame frame)
+        {
+            // Allow outdated press frames to be handled.
+
+            ChunkUPlayerDeath press = frame;
 
             ChunkMPlayer otherPlayer;
             if (!PlayerMap.TryGetValue(press.With, out otherPlayer) || otherPlayer == null ||

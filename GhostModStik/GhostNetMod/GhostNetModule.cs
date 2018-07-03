@@ -116,6 +116,13 @@ namespace Celeste.Mod.Ghost.Net {
                 return true;
             }
 
+            if(entityData.Name == "multiplayerDeathTrigger")
+            {
+                MultiplayerDeathTrigger trigger = new MultiplayerDeathTrigger(entityData, offset);
+                level.Add(trigger);
+                return true; 
+            }
+
             return false; 
         }
 
