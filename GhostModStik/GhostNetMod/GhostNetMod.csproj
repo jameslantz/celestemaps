@@ -92,6 +92,8 @@
     <Compile Include="GhostNetModule.cs" />
     <Compile Include="GhostNetTouchSwitch.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="TimedSwitch.cs" />
+    <Compile Include="TimedSwitchGate.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\GhostMod\GhostMod.csproj">

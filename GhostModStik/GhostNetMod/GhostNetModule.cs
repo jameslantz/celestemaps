@@ -109,6 +109,13 @@ namespace Celeste.Mod.Ghost.Net {
                 return true;
             }
 
+            if (entityData.Name == "timedSwitchGate")
+            {
+                TimedSwitchGate touch = new TimedSwitchGate(entityData, offset);
+                level.Add(touch);
+                return true;
+            }
+
             return false; 
         }
 
