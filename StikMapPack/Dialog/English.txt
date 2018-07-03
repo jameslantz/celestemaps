@@ -20,6 +20,9 @@
 
 # stiknork/0
 	stik_0= 							Stik's Maps
+	stik_1=								Stik's Speedies
 	stik_0_1= 							Watering Hole
 	stik_0_2=							Anger Management
 	stik_0_3=							Windy Walkways 
+	stik_1_1=							Watering Hole 1.5
+	stik_1_2=							Topaz Temple Triplets
