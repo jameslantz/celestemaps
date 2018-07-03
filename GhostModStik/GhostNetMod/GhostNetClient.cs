@@ -442,7 +442,8 @@ namespace Celeste.Mod.Ghost.Net {
         public virtual Action<Player> OnPlayerTouchSwitch(GhostTouchSwitch touch)
             => player =>
         {
-            SendUTouchPress((uint)touch.tIdx); 
+            Logger.Log(LogLevel.Info, "ghostnet-c", "Running OnPlayerTouchSwitch");
+            SendUTouchPress((uint)touch.tIdx, PlayerID); 
         };
 
         public virtual Action<Player> OnPlayerTouchGhost(Ghost ghost)
@@ -604,16 +605,22 @@ namespace Celeste.Mod.Ghost.Net {
             }, true);
         }
 
-        public virtual void SendUTouchPress(uint tIdx)
+        public virtual void SendUTouchPress(uint tIdx, uint with)
         {
             if (Connection == null)
                 return;
 
-            Connection.SendUpdate(new GhostNetFrame {
+            Logger.Log(LogLevel.Info, "ghostnet-c", "Running SendUTouchPress");
+
+
+            GhostNetFrame frame = new GhostNetFrame {
                 new ChunkUTouchPress {
-                    TIdx = tIdx
+                    TIdx = tIdx,
+                    With = with,
                 }
-            }, true);
+            };
+
+            Connection.SendUpdate(frame, true, true);
         }
 
         public virtual void SendUAudio(Player player, string sound, string param = null, float value = 0f) {
@@ -702,8 +709,15 @@ namespace Celeste.Mod.Ghost.Net {
         #region Frame Handlers
 
         public virtual void Handle(GhostNetConnection con, GhostNetFrame frame) {
+            if (frame.Has<ChunkUTouchPress>())
+            {
+                Logger.Log(LogLevel.Info, "ghostnet-c", "Frame has TouchPressChunk");
+            }
+
+            Logger.Log(LogLevel.Info, "ghostnet-c", frame.ToString());
+
             if (frame.HHead == null)
-                return;
+            return;
 
             if (frame.Has<ChunkMServerInfo>()) {
                 // The client can receive this more than once.
@@ -737,13 +751,19 @@ namespace Celeste.Mod.Ghost.Net {
                 HandleMChat(con, frame);
 
             if (frame.UUpdate != null)
+            {
+                Logger.Log(LogLevel.Info, "ghostnet-c", "Running HandleUUpdate");
                 HandleUUpdate(con, frame);
+            }
 
             if (frame.Has<ChunkUActionCollision>())
                 HandleUActionCollision(con, frame);
 
             if (frame.Has<ChunkUTouchPress>())
+            {
+                Logger.Log(LogLevel.Info, "ghostnet-c", "Running HandleUTouchPress");
                 HandleUTouchPress(con, frame);
+            }
 
             if (frame.Has<ChunkUAudioPlay>())
                 HandleUAudioPlay(con, frame);
@@ -1036,11 +1056,13 @@ namespace Celeste.Mod.Ghost.Net {
 
         public virtual void HandleUTouchPress(GhostNetConnection con, GhostNetFrame frame)
         {
-            ChunkUTouchPress touchPress = frame; 
-            foreach(GhostTouchSwitch touch in GhostTouchSwitches)
+            ChunkUTouchPress touchPress = frame;
+            Logger.Log(LogLevel.Info, "ghostnet-c", "HandleUTouchPress Recieved");
+            foreach (GhostTouchSwitch touch in GhostTouchSwitches)
             {
                 if(touch.tIdx == touchPress.TIdx)
                 {
+                    Logger.Log(LogLevel.Info, "ghostnet-c", "Turning on Touch Switch");
                     touch.TurnOn(); 
                 }
             }
@@ -1165,7 +1187,9 @@ namespace Celeste.Mod.Ghost.Net {
             Handle(con, frame);
         }
 
-        protected virtual void HandleU(GhostNetConnection con, IPEndPoint remote, GhostNetFrame frame) {
+        protected virtual void HandleU(GhostNetConnection con, IPEndPoint remote, GhostNetFrame frame, bool log) {
+            if(log)
+                Logger.Log(LogLevel.Info, "ghostnet-c", "Logged frame at HandleU in Client");
             Handle(con, frame);
         }
 

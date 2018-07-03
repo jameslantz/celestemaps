@@ -22,7 +22,7 @@ namespace Celeste.Mod.Ghost.Net {
         public IPEndPoint UpdateEndPoint;
 
         public Action<GhostNetConnection, IPEndPoint, GhostNetFrame> OnReceiveManagement;
-        public Action<GhostNetConnection, IPEndPoint, GhostNetFrame> OnReceiveUpdate;
+        public Action<GhostNetConnection, IPEndPoint, GhostNetFrame, bool> OnReceiveUpdate;
         public Action<GhostNetConnection> OnDisconnect;
 
         public GhostNetConnection() {
@@ -43,6 +43,8 @@ namespace Celeste.Mod.Ghost.Net {
 
         public abstract void SendUpdate(GhostNetFrame frame, bool release);
 
+        public abstract void SendUpdate(GhostNetFrame frame, bool release, bool log = false);
+
         public abstract void SendUpdate(GhostNetFrame frame, IPEndPoint remote, bool release);
 
         protected virtual void ReceiveManagement(IPEndPoint remote, GhostNetFrame frame) {
@@ -56,10 +58,10 @@ namespace Celeste.Mod.Ghost.Net {
             }
         }
 
-        protected virtual void ReceiveUpdate(IPEndPoint remote, GhostNetFrame frame) {
+        protected virtual void ReceiveUpdate(IPEndPoint remote, GhostNetFrame frame, bool log = false) {
             UpdateEndPoint = remote;
             try {
-                OnReceiveUpdate?.Invoke(this, remote, frame);
+                OnReceiveUpdate?.Invoke(this, remote, frame, log);
             } catch (Exception e) {
                 Logger.Log(LogLevel.Warn, "ghostnet-con", "Failed handling update frame");
                 LogContext(LogLevel.Warn);

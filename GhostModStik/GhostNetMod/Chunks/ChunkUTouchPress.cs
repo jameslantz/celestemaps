@@ -26,21 +26,25 @@ namespace Celeste.Mod.Ghost.Net
         public bool IsSendable => true;
 
         public uint TIdx;
+        public uint With;
 
         public void Read(BinaryReader reader)
         {
             TIdx = reader.ReadUInt32();
+            With = reader.ReadUInt32();
         }
 
         public void Write(BinaryWriter writer)
         {
             writer.Write(TIdx);
+            writer.Write(With);
         }
 
         public object Clone()
             => new ChunkUTouchPress
             {
-                TIdx = TIdx
+                TIdx = TIdx,
+                With = With
             };
 
         public static implicit operator ChunkUTouchPress(GhostNetFrame frame)

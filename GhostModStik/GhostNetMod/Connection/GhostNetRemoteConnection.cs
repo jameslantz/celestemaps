@@ -95,10 +95,26 @@ namespace Celeste.Mod.Ghost.Net {
             }
         }
 
+        public override void SendUpdate(GhostNetFrame frame, bool release, bool log = false)
+        {
+            if (GhostNetModule.Settings.SendUFramesInMStream)
+            {
+                SendManagement(frame, release);
+                return;
+            }
+
+            lock (UpdateQueue)
+            {
+                UpdateQueue.Enqueue(Tuple.Create(frame, release, default(IPEndPoint)));
+            }
+        }
+
         public override void SendUpdate(GhostNetFrame frame, IPEndPoint remote, bool release) {
             if (GhostNetModule.Settings.SendUFramesInMStream) {
                 throw new NotSupportedException("Sending updates to another client not supported if SendUFramesInMStream enabled.");
             }
+
+            //Logger.Log(LogLevel.Info, "ghostnet-c", "We are in a remote connection.");
 
             lock (UpdateQueue) {
                 UpdateQueue.Enqueue(Tuple.Create(frame, release, remote));

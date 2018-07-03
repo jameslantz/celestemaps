@@ -26,8 +26,15 @@ namespace Celeste.Mod.Ghost.Net {
             ReceiveManagement(ManagementEndPoint, (GhostNetFrame) frame.Clone());
         }
 
-        public override void SendUpdate(GhostNetFrame frame, bool release) {
-            ReceiveUpdate(UpdateEndPoint, (GhostNetFrame) frame.Clone());
+        public override void SendUpdate(GhostNetFrame frame, bool release)
+        {
+            ReceiveUpdate(UpdateEndPoint, (GhostNetFrame)frame.Clone());
+        }
+
+        public override void SendUpdate(GhostNetFrame frame, bool release, bool log = false) {
+            if(log)
+                Logger.Log(LogLevel.Info, "ghostnet-c", "Logged frame at SendUpdate in LocalConnection");
+            ReceiveUpdate(UpdateEndPoint, (GhostNetFrame) frame.Clone(), true);
         }
 
         public override void SendUpdate(GhostNetFrame frame, IPEndPoint remote, bool release) {

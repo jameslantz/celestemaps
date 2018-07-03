@@ -112,6 +112,7 @@ namespace Celeste.Mod.Ghost.Net {
                     if (ChunkParsers.TryGetValue(id, out parser)) {
                         IChunk chunk = parser(reader);
                         if (chunk != null && chunk.IsValid) {
+                            Logger.Log(LogLevel.Info, "ghostnet-reader", chunk.GetType().ToString());
                             lock (ChunkMap) {
                                 ChunkMap[chunk.GetType()] = chunk;
                             }
@@ -135,7 +136,10 @@ namespace Celeste.Mod.Ghost.Net {
             lock (ChunkMap) {
                 foreach (IChunk chunk in ChunkMap.Values)
                     if (chunk != null && chunk.IsValid && chunk.IsSendable)
+                    {
                         GhostFrame.WriteChunk(writer, chunk.Write, GetChunkID(chunk.GetType()));
+                        Logger.Log(LogLevel.Info, "ghostnet-writer", chunk.GetType().ToString());
+                    }
             }
 
             if (Extra != null)

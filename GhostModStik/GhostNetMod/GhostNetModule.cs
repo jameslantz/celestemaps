@@ -54,6 +54,7 @@ namespace Celeste.Mod.Ghost.Net {
         public override void Load() {
             Everest.Events.Input.OnInitialize += OnInputInitialize;
             Everest.Events.Input.OnDeregister += OnInputDeregister;
+            Everest.Events.Level.OnLoadEntity += OnLoadEntity;
 
             GhostNetHooks.Load();
 
@@ -97,9 +98,25 @@ namespace Celeste.Mod.Ghost.Net {
             }
         }
 
+        private bool OnLoadEntity(Level level, LevelData levelData, Vector2 offset, EntityData entityData)
+        {
+            if (entityData.Name == "ghostTouchSwitch")
+            {
+                GhostTouchSwitch touch = new GhostTouchSwitch(entityData, offset);
+                level.Add(touch);
+                if(Client != null && Client.Connection != null)
+                    Client.AddGhostTouch(touch);
+                return true;
+            }
+
+            return false; 
+        }
+
+
         public override void Unload() {
             Everest.Events.Input.OnInitialize -= OnInputInitialize;
             Everest.Events.Input.OnDeregister -= OnInputDeregister;
+            Everest.Events.Level.OnLoadEntity -= OnLoadEntity;
             Stop();
             OnInputDeregister();
         }

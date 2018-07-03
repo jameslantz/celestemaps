@@ -56,6 +56,7 @@ namespace Celeste.Mod.Ghost.Net {
         // TODO: More events.
 
         // Allows testing a subset of GhostNetMod's functions in an easy manner.
+        // STIK: Look here for testing! 
         public bool AllowLoopbackUpdates = false;
 
         public GhostNetServer(Game game)
@@ -284,6 +285,9 @@ namespace Celeste.Mod.Ghost.Net {
             if (frame.Has<ChunkUActionCollision>())
                 HandleUActionCollision(con, frame);
 
+            if (frame.Has<ChunkUTouchPress>())
+                HandleUTouchPress(con, frame);
+
             // TODO: Restrict players from abusing UAudioPlay and UParticles propagation.
             if (frame.Has<ChunkUAudioPlay>()) {
                 // Propagate audio to all active players in the same room.
@@ -466,6 +470,26 @@ namespace Celeste.Mod.Ghost.Net {
             frame.PropagateU = true;
         }
 
+        public virtual void HandleUTouchPress(GhostNetConnection con, GhostNetFrame frame)
+        {
+            // Allow outdated press frames to be handled.
+
+            ChunkUTouchPress press = frame;
+
+            ChunkMPlayer otherPlayer;
+            if (!PlayerMap.TryGetValue(press.With, out otherPlayer) || otherPlayer == null ||
+                frame.MPlayer.SID != otherPlayer.SID ||
+                frame.MPlayer.Mode != otherPlayer.Mode
+            )
+            {
+                // Player not in the same room.
+                return;
+            }
+
+            // Propagate update to all active players in the same room.
+            frame.PropagateU = true;
+        }
+
         #endregion
 
         #region Frame Senders
@@ -553,7 +577,7 @@ namespace Celeste.Mod.Ghost.Net {
             Handle(con, frame);
         }
 
-        protected virtual void HandleU(GhostNetConnection conReceived, IPEndPoint remote, GhostNetFrame frame) {
+        protected virtual void HandleU(GhostNetConnection conReceived, IPEndPoint remote, GhostNetFrame frame, bool log) {
             // Prevent UpdateConnection locking in on a single player.
             if (conReceived == UpdateConnection)
                 UpdateConnection.UpdateEndPoint = null;

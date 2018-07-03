@@ -64,6 +64,7 @@
     <Compile Include="Chunks\ChunkUAudioPlay.cs" />
     <Compile Include="Chunks\ChunkUParticles.cs" />
     <Compile Include="Chunks\ChunkUActionCollision.cs" />
+    <Compile Include="Chunks\ChunkUTouchPress.cs" />
     <Compile Include="Chunks\IChunk.cs" />
     <Compile Include="Chunks\ChunkHHead.cs" />
     <Compile Include="Chunks\ChunkMChat.cs" />
@@ -89,6 +90,7 @@
     <Compile Include="GhostNetServer.cs" />
     <Compile Include="GhostNetModuleSettings.cs" />
     <Compile Include="GhostNetModule.cs" />
+    <Compile Include="GhostNetTouchSwitch.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
