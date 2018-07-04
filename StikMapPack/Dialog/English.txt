@@ -25,5 +25,5 @@
 	stik_0_2=							Anger Management
 	stik_0_3=							Windy Walkways 
 	stik_1_1=							Watering Hole 1.5
-	stik_1_2=							Topaz Temple Triplets
+	stik_1_2=							Topaz Temple Heist 
 	stik_1_3=							Death Test
