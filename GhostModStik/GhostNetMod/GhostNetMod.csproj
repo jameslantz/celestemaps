@@ -59,12 +59,20 @@
   <ItemGroup>
     <Compile Include="Chunks\ChunkEAudioTrackState.cs" />
     <Compile Include="Chunks\ChunkEAudioState.cs" />
+    <Compile Include="Chunks\ChunkMKevinballEnd.cs" />
+    <Compile Include="Chunks\ChunkMKevinballStart.cs" />
     <Compile Include="Chunks\ChunkRListAreas.cs" />
     <Compile Include="Chunks\ChunkRListMods.cs" />
     <Compile Include="Chunks\ChunkUAudioPlay.cs" />
+    <Compile Include="Chunks\ChunkUControlPress.cs" />
+    <Compile Include="Chunks\ChunkUCrushHit.cs" />
+    <Compile Include="Chunks\ChunkUKevinballWin.cs" />
+    <Compile Include="Chunks\ChunkULoadedKevinball.cs" />
     <Compile Include="Chunks\ChunkUParticles.cs" />
     <Compile Include="Chunks\ChunkUActionCollision.cs" />
+    <Compile Include="Chunks\ChunkUPickupKevinRefill.cs" />
     <Compile Include="Chunks\ChunkUPlayerDeath.cs" />
+    <Compile Include="Chunks\ChunkUSpikeTrigger.cs" />
     <Compile Include="Chunks\ChunkUTouchPress.cs" />
     <Compile Include="Chunks\IChunk.cs" />
     <Compile Include="Chunks\ChunkHHead.cs" />
@@ -77,6 +85,7 @@
     <Compile Include="Chunks\ChunkMPlayer.cs" />
     <Compile Include="Connection\GhostNetRemoteConnection.cs" />
     <Compile Include="Connection\GhostNetLocalConnection.cs" />
+    <Compile Include="ControlSwitch.cs" />
     <Compile Include="GhostNetHooks.cs" />
     <Compile Include="GhostNetExtensions.cs" />
     <Compile Include="GhostNetParticleHelper.cs" />
@@ -92,7 +101,12 @@
     <Compile Include="GhostNetModuleSettings.cs" />
     <Compile Include="GhostNetModule.cs" />
     <Compile Include="GhostNetTouchSwitch.cs" />
+    <Compile Include="KevinballEndzoneTrigger.cs" />
+    <Compile Include="KevinRefill.cs" />
+    <Compile Include="MultiplayerControlSwitch.cs" />
     <Compile Include="MultiplayerDeathTrigger.cs" />
+    <Compile Include="MultiplayerTriggerSpikes.cs" />
+    <Compile Include="MultiplayerVariableSpeedCrushBlock.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TimedSwitch.cs" />
     <Compile Include="TimedSwitchGate.cs" />

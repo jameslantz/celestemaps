@@ -50,9 +50,25 @@ namespace Celeste.Mod.Ghost.Net {
         public Dictionary<int, float> GhostDashTimes = new Dictionary<int, float>();
 
         public List<GhostTouchSwitch> GhostTouchSwitches = new List<GhostTouchSwitch>();
-        public bool TouchedGhostSwitch = false; 
+        public bool TouchedGhostSwitch = false;
+
+        public List<MultiplayerControlSwitch> ControlSwitches = new List<MultiplayerControlSwitch>();
+        public List<MultiplayerTriggerSpikes> mTriggerSpikes = new List<MultiplayerTriggerSpikes>();
+
+        public bool PlayingKevinball = false;
+        public bool InStartRoutine = false;
+        public float StartRoutineTimer = 3f;
+        public float StartRoutineState = 4; 
+
+        public uint P1_id = 0;
+        public uint P2_id = 1;
+
+        public MultiplayerVariableSpeedCrushBlock crushBlock = null; 
 
         private bool WasPaused = false;
+        public bool FirstGhostSwitch = true;
+        public bool FirstControlSwitch = true;
+        public bool FirstTriggerSpike = true; 
 
         public List<ChatLine> ChatLog = new List<ChatLine>();
         public string ChatInput = "";
@@ -83,6 +99,7 @@ namespace Celeste.Mod.Ghost.Net {
         protected bool _ChatWasPaused;
         protected Overlay _ChatLevelOverlay;
         protected int _ChatConsumeInput = 0;
+        public bool VirtualPause = false; 
         public bool ChatVisible {
             get {
                 return _ChatVisible;
@@ -93,7 +110,9 @@ namespace Celeste.Mod.Ghost.Net {
 
                 if (value) {
                     _ChatWasPaused = Engine.Scene.Paused;
-                    Engine.Scene.Paused = true;
+                    //if(!PlayingKevinball)
+                    //    Engine.Scene.Paused = true;
+                    VirtualPause = true; 
                     // If we're in a level, add a dummy overlay to prevent the pause menu from handling input.
                     if (Engine.Scene is Level)
                         ((Level) Engine.Scene).Overlay = _ChatLevelOverlay = new Overlay();
@@ -102,7 +121,9 @@ namespace Celeste.Mod.Ghost.Net {
 
                 } else {
                     ChatInput = "";
-                    Engine.Scene.Paused = _ChatWasPaused;
+                    //if(!PlayingKevinball)
+                    //    Engine.Scene.Paused = _ChatWasPaused;
+                    VirtualPause = _ChatWasPaused;
                     _ChatConsumeInput = 2;
                     if (_ChatLevelOverlay != null && (Engine.Scene as Level)?.Overlay == _ChatLevelOverlay)
                         ((Level) Engine.Scene).Overlay = null;
@@ -124,8 +145,30 @@ namespace Celeste.Mod.Ghost.Net {
             OnCreate?.Invoke(this);
         }
 
+        public bool KevinHittable = false;
+        public KevinRefill refill = null; 
+        public void OnPickupKevinRefill()
+        {
+            KevinHittable = true;
+            SendUPickupKevinRefill(PlayerID); 
+        }
+
+        public virtual void SendUPickupKevinRefill(uint id)
+        {
+            if (Connection == null)
+                return;
+
+            Connection.SendUpdate(new GhostNetFrame {
+                new ChunkUPickupKevinRefill {
+                    With = id
+                }
+            }, true);
+        }
+
         public override void Update(GameTime gameTime) {
             SendUUpdate();
+
+            lastPlayerDeath += Engine.DeltaTime;
 
             Level level = Engine.Scene as Level;
 
@@ -133,6 +176,86 @@ namespace Celeste.Mod.Ghost.Net {
 
             bool inputDisabled = MInput.Disabled;
             MInput.Disabled = false;
+
+            if(PlayingKevinball)
+            {
+                if (crushBlock != null)
+                {
+                    if (crushBlock.CollideCheck<KevinballEndzoneTrigger>())
+                    {
+                        if (crushBlock.Position.X < 200f)
+                        {
+                            SendUKevinballWin(P1_id, P2_id);
+                        }
+                        else
+                        {
+                            SendUKevinballWin(P2_id, P1_id);
+                        }
+                    }
+                }
+
+                int p1Count = 0;
+                int p2Count = 0; 
+                foreach(MultiplayerControlSwitch mSwitch in ControlSwitches)
+                {
+                    if (mSwitch.currentController == MultiplayerControlSwitch.Controller.P1)
+                        p1Count++;
+                    else if (mSwitch.currentController == MultiplayerControlSwitch.Controller.P2)
+                        p2Count++;
+                }
+
+                if(p1Count >= ControlSwitches.Count)
+                {
+                    SendUKevinballWin(P1_id, P2_id);
+                }
+                else if(p2Count >= ControlSwitches.Count)
+                {
+                    SendUKevinballWin(P2_id, P1_id);
+                }
+            }
+
+            if(InStartRoutine)
+            {
+                StartRoutineTimer -= Engine.DeltaTime; 
+                if(StartRoutineTimer <= 0)
+                {
+                    InStartRoutine = false;
+                    Player.StateMachine.ForceState(Player.StNormal);
+                }
+
+                if(StartRoutineState == 4 && StartRoutineTimer <= 3f)
+                {
+                    string text = "Starting in 3...";
+                    ChatLog.Insert(0, new ChatLine(uint.MaxValue, PlayerID, "", "KEVINBALL", text));
+                    ChatRepeat.Insert(1, text);
+                    StartRoutineState = 3; 
+                }
+
+                if (StartRoutineState == 3 && StartRoutineTimer <= 2f)
+                {
+                    string text = "Starting in 2...";
+                    ChatLog.Insert(0, new ChatLine(uint.MaxValue, PlayerID, "", "KEVINBALL", text));
+                    ChatRepeat.Insert(1, text);
+                    StartRoutineState = 2;
+                }
+
+                if (StartRoutineState == 2 && StartRoutineTimer <= 1f)
+                {
+                    string text = "Starting in 1...";
+                    ChatLog.Insert(0, new ChatLine(uint.MaxValue, PlayerID, "", "KEVINBALL", text));
+                    ChatRepeat.Insert(1, text);
+                    StartRoutineState = 1;
+                }
+
+                if (StartRoutineState == 1 && StartRoutineTimer <= 0f)
+                {
+                    string text = "KEVINBALL!!";
+                    ChatLog.Insert(0, new ChatLine(uint.MaxValue, PlayerID, "", "KEVINBALL", text));
+                    ChatRepeat.Insert(1, text);
+                    StartRoutineState = 0;
+                }
+
+            }
 
             if (PlayerID != uint.MaxValue && (Player?.Scene?.Paused ?? false) != WasPaused) {
                 SendMPlayer();
@@ -433,11 +556,80 @@ namespace Celeste.Mod.Ghost.Net {
             return ghost;
         }
 
+        public virtual void LoadedKevinballLevel(Level level)
+        {
+            PlayingKevinball = false;
+            KevinHittable = false; 
+            //level.PauseLock = true; 
+            SendULoadedKevinball(PlayerID);
+        }
+
+        public virtual void StartKevinballRoutine(uint player1, uint player2)
+        {
+            P1_id = player1;
+            P2_id = player2; 
+
+            if (PlayerID != player1 && PlayerID != player2)
+                return; 
+
+            PlayingKevinball = true;
+            InStartRoutine = true;
+            StartRoutineTimer = 2f;
+            StartRoutineState = 3;
+            if (player1 == PlayerID)
+            {
+                Player.Position = new Vector2(80f,140f);
+                Player.StateMachine.ForceState(Player.StFrozen);
+                Player.Speed = new Vector2(0, 0);
+            }
+
+            else if (player2 == PlayerID)
+            {
+                Player.Position = new Vector2(240f, 140f);
+                Player.StateMachine.ForceState(Player.StFrozen);
+            }
+
+            string text = "KEVINBALL!!";
+            ChatLog.Insert(0, new ChatLine(uint.MaxValue, PlayerID, "", "KEVINBALL", text));
+            ChatRepeat.Insert(1, text);
+        }
+
         public virtual void AddGhostTouch(GhostTouchSwitch touch)
         {
+            if(FirstGhostSwitch)
+            {
+                FirstGhostSwitch = false;
+                GhostTouchSwitches = new List<GhostTouchSwitch>(); 
+            }
+
             touch.Add(new PlayerCollider(OnPlayerTouchSwitch(touch), null, new Hitbox(30f, 30f, -15f, -15f)));
             touch.tIdx = GhostTouchSwitches.Count;
             GhostTouchSwitches.Add(touch);
+            Logger.Log(LogLevel.Info, "GHOSTSWITCHES", "ADDED GHOST SWITCHES");
+        }
+
+        public virtual void AddControlSwitch(MultiplayerControlSwitch control)
+        {
+            if (FirstControlSwitch)
+            {
+                FirstControlSwitch = false;
+                ControlSwitches = new List<MultiplayerControlSwitch>();
+            }
+
+            control.tIdx = ControlSwitches.Count;
+            ControlSwitches.Add(control);
+        }
+
+        public virtual void AddTriggerSpikes(MultiplayerTriggerSpikes spikes)
+        {
+            if (FirstTriggerSpike)
+            {
+                FirstTriggerSpike = false;
+                mTriggerSpikes = new List<MultiplayerTriggerSpikes>();
+            }
+
+            spikes.tIdx = mTriggerSpikes.Count;
+            mTriggerSpikes.Add(spikes);
         }
 
         public virtual Action<Player> OnPlayerTouchSwitch(GhostTouchSwitch touch)
@@ -447,6 +639,25 @@ namespace Celeste.Mod.Ghost.Net {
             TouchedGhostSwitch = true; 
             SendUTouchPress((uint)touch.tIdx, PlayerID); 
         };
+
+        public virtual void OnHitMultiplayerCrush(Vector2 dir, MultiplayerVariableSpeedCrushBlock block)
+        {
+            //Logger.Log(LogLevel.Info, "SOCKTEST", "Running Crush");
+            KevinHittable = false; 
+            SendUCrushHit(dir, PlayerID);
+        }
+
+        public virtual void OnTriggerMultiplayerSpikes(MultiplayerTriggerSpikes spikes, int infoIdx)
+        {
+            //Logger.Log(LogLevel.Info, "SOCKTEST", "Running Spikes");
+            SendUSpikesTrigger((uint)spikes.tIdx, PlayerID, (uint)infoIdx);
+        }
+
+        public virtual void OnTriggerMultiplayerControlSwitch(MultiplayerControlSwitch cSwitch)
+        {
+            //Logger.Log(LogLevel.Info, "SOCKTEST", "Running Switch");
+            SendUControlPress((uint)cSwitch.tIdx, PlayerID);
+        }
 
         public virtual Action<Player> OnPlayerTouchGhost(Ghost ghost)
             => player => {
@@ -600,9 +811,43 @@ namespace Celeste.Mod.Ghost.Net {
             if (Connection == null)
                 return;
 
+            if(PlayingKevinball)
+            {
+                uint winner = P1_id;
+                uint loser = P2_id; 
+
+                if(with == P1_id)
+                {
+                    winner = P2_id;
+                    loser = P1_id; 
+                }
+
+                Connection.SendUpdate(new GhostNetFrame {
+                    new ChunkUKevinballWin {
+                        Winner = winner, 
+                        Loser = loser
+                    }
+                }, true);
+            }
+            else
+            {
+                Connection.SendUpdate(new GhostNetFrame {
+                    new ChunkUPlayerDeath {
+                        With = with
+                    }
+                }, true);
+            }
+        }
+
+        public virtual void SendUKevinballWin(uint winner, uint loser)
+        {
+            if (Connection == null)
+                return;
+
             Connection.SendUpdate(new GhostNetFrame {
-                new ChunkUPlayerDeath {
-                    With = with
+                new ChunkUKevinballWin {
+                    Winner = winner, 
+                    Loser = loser
                 }
             }, true);
         }
@@ -629,6 +874,64 @@ namespace Celeste.Mod.Ghost.Net {
 
             GhostNetFrame frame = new GhostNetFrame {
                 new ChunkUTouchPress {
+                    TIdx = tIdx,
+                    With = with,
+                }
+            };
+
+            Connection.SendUpdate(frame, true, true);
+        }
+
+        public virtual void SendUCrushHit(Vector2 dir, uint with)
+        {
+            if (Connection == null)
+                return;
+
+            uint bDir = 100;
+            if (dir.X <= 0)
+                bDir = 0;
+            else
+                bDir = 1;
+
+            GhostNetFrame frame = new GhostNetFrame {
+                new ChunkUCrushHit {
+                    With = with,
+                    Dir = bDir
+                }
+            };
+
+            Connection.SendUpdate(frame, true, true);
+        }
+
+        public virtual void SendUSpikesTrigger(uint tIdx, uint with, uint infoIdx)
+        {
+            if (Connection == null)
+                return;
+
+            //Logger.Log(LogLevel.Info, "ghostnet-c", "Running SendUTouchPress");
+
+
+            GhostNetFrame frame = new GhostNetFrame {
+                new ChunkUSpikeTrigger {
+                    TIdx = tIdx,
+                    With = with,
+                    SInfo = infoIdx
+                }
+            };
+
+            Connection.SendUpdate(frame, true, true);
+        }
+
+        public virtual void SendUControlPress(uint tIdx, uint with)
+        {
+            if (Connection == null)
+                return;
+
+            //Logger.Log(LogLevel.Info, "ghostnet-c", "Running SendUTouchPress");
+
+
+            GhostNetFrame frame = new GhostNetFrame {
+                new ChunkUControlPress {
                     TIdx = tIdx,
                     With = with,
                 }
@@ -764,6 +1067,15 @@ namespace Celeste.Mod.Ghost.Net {
             if (frame.Has<ChunkMChat>())
                 HandleMChat(con, frame);
 
+            if (frame.Has<ChunkMKevinballStart>())
+                HandleMKevinballStart(con, frame);
+
+            if (frame.Has<ChunkMKevinballEnd>())
+                HandleMKevinballEnd(con, frame);
+
+            if (frame.Has<ChunkUPickupKevinRefill>())
+                HandleUPickupKevinRefill(con, frame);
+
             if (frame.UUpdate != null)
             {
                 Logger.Log(LogLevel.Info, "ghostnet-c", "Running HandleUUpdate");
@@ -777,6 +1089,24 @@ namespace Celeste.Mod.Ghost.Net {
             {
                 Logger.Log(LogLevel.Info, "ghostnet-c", "Running HandleUTouchPress");
                 HandleUTouchPress(con, frame);
+            }
+
+            if (frame.Has<ChunkUControlPress>())
+            {
+                //Logger.Log(LogLevel.Info, "ghostnet-c", "Running HandleUTouchPress");
+                HandleUControlPress(con, frame);
+            }
+
+            if (frame.Has<ChunkUSpikeTrigger>())
+            {
+                //Logger.Log(LogLevel.Info, "ghostnet-c", "Running HandleUTouchPress");
+                HandleUSpikeTrigger(con, frame);
+            }
+
+            if (frame.Has<ChunkUCrushHit>())
+            {
+                //Logger.Log(LogLevel.Info, "ghostnet-c", "Running HandleUTouchPress");
+                HandleUCrushHit(con, frame);
             }
 
             if (frame.Has<ChunkUPlayerDeath>())
@@ -980,6 +1310,12 @@ namespace Celeste.Mod.Ghost.Net {
             Engine.Scene.Add(emote);
         }
 
+        public virtual void HandleMKevinballStart(GhostNetConnection con, GhostNetFrame frame)
+        {
+            ChunkMKevinballStart start = frame;
+            StartKevinballRoutine(start.Player1, start.Player2);
+        }
+
         public virtual void HandleMChat(GhostNetConnection con, GhostNetFrame frame) {
             // Logger.Log(LogLevel.Info, "ghostnet-c", $"#{frame.HHead.PlayerID} chat: {frame.MChat.Text}");
 
@@ -1087,14 +1423,68 @@ namespace Celeste.Mod.Ghost.Net {
             }
         }
 
+        public virtual void HandleUControlPress(GhostNetConnection con, GhostNetFrame frame)
+        {
+            ChunkUControlPress controlPress = frame;
+            foreach (MultiplayerControlSwitch control in ControlSwitches)
+            {
+                if (control.tIdx == controlPress.TIdx)
+                {
+                    control.TurnOn(controlPress.With);
+                }
+            }
+        }
+
+        public virtual void HandleUSpikeTrigger(GhostNetConnection con, GhostNetFrame frame)
+        {
+            ChunkUSpikeTrigger trigger = frame;
+            foreach (MultiplayerTriggerSpikes spikes in mTriggerSpikes)
+            {
+                if (spikes.tIdx == trigger.TIdx)
+                {
+                    spikes.ActivateSpikesMP((int)trigger.SInfo);
+                }
+            }
+        }
+
+        public virtual void HandleUCrushHit(GhostNetConnection con, GhostNetFrame frame)
+        {
+            ChunkUCrushHit crushHit = frame;
+            Vector2 dir = new Vector2(0, 0);
+            if (crushHit.Dir == 0)
+                dir.X = -1;
+            else
+                dir.X = 1;
+
+            if (crushBlock.CanActivate(dir, true))
+                crushBlock.Attack(dir);
+        }
+
+        public virtual void HandleUPickupKevinRefill(GhostNetConnection con, GhostNetFrame frame)
+        {
+            ChunkUPickupKevinRefill kevinFrame = frame;
+            if(kevinFrame.With != PlayerID)
+            {
+                refill.OnOtherPlayer(Player);
+            }
+        }
+
+        public float lastPlayerDeath = 0f; 
         public virtual void HandleUPlayerDeath(GhostNetConnection con, GhostNetFrame frame)
         {
+            lastPlayerDeath = 0f; 
             ChunkUTouchPress touchPress = frame;
             if (Player.CollideCheck<MultiplayerDeathTrigger>())
             {
                 if(!Player.Dead)
                     Player.Die(new Vector2(0, 0)); 
             }
+        }
+
+        public virtual void HandleMKevinballEnd(GhostNetConnection con, GhostNetFrame frame)
+        {
+            if (!Player.Dead && lastPlayerDeath > 3f)
+                Player.Die(new Vector2(0, 0));
         }
 
         public virtual void HandleUAudioPlay(GhostNetConnection con, GhostNetFrame frame) {
@@ -1257,6 +1647,11 @@ namespace Celeste.Mod.Ghost.Net {
             if (Connection == null)
                 return;
 
+            //Logger.Log(LogLevel.Info, "GHOSTSWITCHES", GhostTouchSwitches.Count.ToString());
+            FirstGhostSwitch = true;
+            FirstControlSwitch = true;
+            FirstTriggerSpike = true; 
+
             Logger.Log(LogLevel.Info, "ghost-c", $"Stepping into {Session.Area.GetSID()} {(char) ('A' + Session.Area.Mode)} {Session.Level}");
 
             Player = level.Tracker.GetEntity<Player>();
@@ -1302,6 +1697,9 @@ namespace Celeste.Mod.Ghost.Net {
             if (Connection == null)
                 return;
 
+            if(PlayingKevinball)
+                SendUPlayerDeath(PlayerID);
+
             if (!player.CollideCheck<MultiplayerDeathTrigger>())
                 return; 
 
@@ -1315,6 +1713,18 @@ namespace Celeste.Mod.Ghost.Net {
             {
                 Logger.Log(LogLevel.Info, "ghost-c", "Died in level, NO SEND");
             }
+        }
+
+        public virtual void SendULoadedKevinball(uint with)
+        {
+            if (Connection == null)
+                return;
+
+            Connection.SendUpdate(new GhostNetFrame {
+                new ChunkULoadedKevinball {
+                    With = with
+                }
+            }, true);
         }
 
         public void OnCompleteLevel(Level level) {

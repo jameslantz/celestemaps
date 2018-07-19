@@ -123,6 +123,79 @@ namespace Celeste.Mod.Ghost.Net {
                 return true; 
             }
 
+            if (entityData.Name == "kevinballEndzoneTrigger")
+            {
+                KevinballEndzoneTrigger trigger = new KevinballEndzoneTrigger(entityData, offset);
+                level.Add(trigger);
+                if (Client != null && Client.Connection != null)
+                    Client.LoadedKevinballLevel(level); 
+                return true;
+            }
+
+            if (entityData.Name == "multiplayerTriggerSpikesDown")
+            {
+                MultiplayerTriggerSpikes spike = new MultiplayerTriggerSpikes(entityData, offset, MultiplayerTriggerSpikes.Directions.Down);
+                level.Add(spike);
+                if (Client != null && Client.Connection != null)
+                    Client.AddTriggerSpikes(spike);
+                return true; 
+            }
+
+            if (entityData.Name == "multiplayerTriggerSpikesLeft")
+            {
+                MultiplayerTriggerSpikes spike = new MultiplayerTriggerSpikes(entityData, offset, MultiplayerTriggerSpikes.Directions.Left);
+                level.Add(spike);
+                if (Client != null && Client.Connection != null)
+                    Client.AddTriggerSpikes(spike);
+                return true;
+            }
+
+            if (entityData.Name == "multiplayerTriggerSpikesRight")
+            {
+                MultiplayerTriggerSpikes spike = new MultiplayerTriggerSpikes(entityData, offset, MultiplayerTriggerSpikes.Directions.Right);
+                level.Add(spike);
+                if (Client != null && Client.Connection != null)
+                    Client.AddTriggerSpikes(spike);
+                return true;
+            }
+
+            if (entityData.Name == "multiplayerTriggerSpikesUp")
+            {
+                MultiplayerTriggerSpikes spike = new MultiplayerTriggerSpikes(entityData, offset, MultiplayerTriggerSpikes.Directions.Up);
+                level.Add(spike);
+                if (Client != null && Client.Connection != null)
+                    Client.AddTriggerSpikes(spike);
+                return true;
+            }
+
+            if (entityData.Name == "multiplayerVariableSpeedCrushBlock")
+            {
+                MultiplayerVariableSpeedCrushBlock block = new MultiplayerVariableSpeedCrushBlock(entityData, offset);
+                level.Add(block);
+                if (Client != null && Client.Connection != null)
+                    Client.crushBlock = block; 
+                return true;
+            }
+
+            if (entityData.Name == "kevinRefill")
+            {
+                KevinRefill fill = new KevinRefill(entityData, offset);
+                level.Add(fill);
+                if (Client != null && Client.Connection != null)
+                    Client.refill = fill;
+                return true;
+            }
+
+            if (entityData.Name == "multiplayerControlSwitch")
+            {
+                MultiplayerControlSwitch cSwitch = new MultiplayerControlSwitch(entityData, offset);
+                level.Add(cSwitch);
+                if (Client != null && Client.Connection != null)
+                    Client.AddControlSwitch(cSwitch);
+
+                return true;
+            }
+
             return false; 
         }
 

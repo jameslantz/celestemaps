@@ -41,6 +41,11 @@ namespace Celeste.Mod.Ghost.Net {
         public Dictionary<IPAddress, GhostNetConnection> UpdateConnectionQueue = new Dictionary<IPAddress, GhostNetConnection>();
         public Dictionary<uint, ChunkMPlayer> PlayerMap = new Dictionary<uint, ChunkMPlayer>();
         public Dictionary<uint, uint> GhostIndices = new Dictionary<uint, uint>();
+        public List<uint> KevinballPlayerIDs = new List<uint>();
+        public uint LastKevinballWinner = 0;
+        public uint LastKevinballLoser = 1;
+        public Dictionary<uint, Vector2> KevinballScores = new Dictionary<uint, Vector2>();
+        public bool ActiveKevinballMatch = false; 
 
         public List<ChunkMChat> ChatLog = new List<ChunkMChat>();
 
@@ -90,6 +95,16 @@ namespace Celeste.Mod.Ghost.Net {
         }
 
         public override void Update(GameTime gameTime) {
+            
+            if(inKevinballStarting)
+            {
+                kevinballStartTimer -= Engine.DeltaTime;
+                if(kevinballStartTimer <= 0)
+                {
+                    inKevinballStarting = false;
+                    RunKevinballMatch();
+                }
+            }
             base.Update(gameTime);
         }
 
@@ -288,8 +303,26 @@ namespace Celeste.Mod.Ghost.Net {
             if (frame.Has<ChunkUTouchPress>())
                 HandleUTouchPress(con, frame);
 
+            if (frame.Has<ChunkUControlPress>())
+                HandleUControlPress(con, frame);
+
+            if (frame.Has<ChunkUCrushHit>())
+                HandleUCrushHit(con, frame);
+
+            if (frame.Has<ChunkUSpikeTrigger>())
+                HandleUSpikeTrigger(con, frame);
+
             if (frame.Has<ChunkUPlayerDeath>())
                 HandleUPlayerDeath(con, frame);
+
+            if (frame.Has<ChunkUPickupKevinRefill>())
+                HandleUKevinRefill(con, frame);
+
+            if (frame.Has<ChunkULoadedKevinball>())
+                HandleULoadedKevinball(con, frame);
+
+            if (frame.Has<ChunkUKevinballWin>())
+                HandleUWonKevinball(con, frame);
 
             // TODO: Restrict players from abusing UAudioPlay and UParticles propagation.
             if (frame.Has<ChunkUAudioPlay>()) {
@@ -493,6 +526,87 @@ namespace Celeste.Mod.Ghost.Net {
             frame.PropagateU = true;
         }
 
+        public virtual void HandleUKevinRefill(GhostNetConnection con, GhostNetFrame frame)
+        {
+            // Allow outdated press frames to be handled.
+
+            ChunkUPickupKevinRefill press = frame;
+
+            ChunkMPlayer otherPlayer;
+            if (!PlayerMap.TryGetValue(press.With, out otherPlayer) || otherPlayer == null ||
+                frame.MPlayer.SID != otherPlayer.SID ||
+                frame.MPlayer.Mode != otherPlayer.Mode
+            )
+            {
+                // Player not in the same room.
+                return;
+            }
+
+            // Propagate update to all active players in the same room.
+            frame.PropagateU = true;
+        }
+
+
+        public virtual void HandleUControlPress(GhostNetConnection con, GhostNetFrame frame)
+        {
+            // Allow outdated press frames to be handled.
+
+            ChunkUControlPress press = frame;
+
+            ChunkMPlayer otherPlayer;
+            if (!PlayerMap.TryGetValue(press.With, out otherPlayer) || otherPlayer == null ||
+                frame.MPlayer.SID != otherPlayer.SID ||
+                frame.MPlayer.Mode != otherPlayer.Mode
+            )
+            {
+                // Player not in the same room.
+                return;
+            }
+
+            // Propagate update to all active players in the same room.
+            frame.PropagateU = true;
+        }
+
+        public virtual void HandleUCrushHit(GhostNetConnection con, GhostNetFrame frame)
+        {
+            // Allow outdated press frames to be handled.
+
+            ChunkUCrushHit hit = frame;
+
+            ChunkMPlayer otherPlayer;
+            if (!PlayerMap.TryGetValue(hit.With, out otherPlayer) || otherPlayer == null ||
+                frame.MPlayer.SID != otherPlayer.SID ||
+                frame.MPlayer.Mode != otherPlayer.Mode
+            )
+            {
+                // Player not in the same room.
+                return;
+            }
+
+            // Propagate update to all active players in the same room.
+            frame.PropagateU = true;
+        }
+
+        public virtual void HandleUSpikeTrigger(GhostNetConnection con, GhostNetFrame frame)
+        {
+            // Allow outdated press frames to be handled.
+
+            ChunkUSpikeTrigger trigger = frame;
+
+            ChunkMPlayer otherPlayer;
+            if (!PlayerMap.TryGetValue(trigger.With, out otherPlayer) || otherPlayer == null ||
+                frame.MPlayer.SID != otherPlayer.SID ||
+                frame.MPlayer.Mode != otherPlayer.Mode
+            )
+            {
+                // Player not in the same room.
+                return;
+            }
+
+            // Propagate update to all active players in the same room.
+            frame.PropagateU = true;
+        }
+
         public virtual void HandleUPlayerDeath(GhostNetConnection con, GhostNetFrame frame)
         {
             // Allow outdated press frames to be handled.
@@ -511,6 +625,186 @@ namespace Celeste.Mod.Ghost.Net {
 
             // Propagate update to all active players in the same room.
             frame.PropagateU = true;
+        }
+
+        public virtual void HandleUWonKevinball(GhostNetConnection con, GhostNetFrame frame)
+        {
+            // Allow outdated press frames to be handled.
+
+            ChunkUKevinballWin win = frame;
+
+            TryEndKevin(win.Winner, win.Loser);
+        }
+
+        public void TryEndKevin(uint winner, uint loser)
+        {
+            if (!ActiveKevinballMatch)
+                return;
+
+            ActiveKevinballMatch = false;
+            EndKevinballMatch(winner, loser);
+        }
+
+        public virtual void HandleULoadedKevinball(GhostNetConnection con, GhostNetFrame frame)
+        {
+            ChunkULoadedKevinball press = frame;
+
+            ChunkMPlayer otherPlayer;
+            if (!PlayerMap.TryGetValue(press.With, out otherPlayer) || otherPlayer == null ||
+                frame.MPlayer.SID != otherPlayer.SID ||
+                frame.MPlayer.Mode != otherPlayer.Mode
+            )
+            {
+                // Player not in the same room.
+                return;
+            }
+
+            if(!KevinballPlayerIDs.Contains(press.With))
+            {
+                KevinballPlayerIDs.Add(press.With);
+            }
+
+            if(!KevinballScores.ContainsKey(press.With))
+            {
+                KevinballScores.Add(press.With, new Vector2(0, 0));
+            }
+
+            if (ActiveKevinballMatch)
+                return; 
+
+            if(KevinballPlayerIDs.Count >= 2)
+            {
+                StartKevinball(con, frame);
+            }
+        }
+
+        public float kevinballStartTimer = 3f;
+        public bool inKevinballStarting = false;
+        public int lastPotIndex = 0;
+        public bool firstKevinball = true;
+        public List<uint> KevinballQueue = new List<uint>();
+
+        public void StartKevinball(GhostNetConnection con, GhostNetFrame frame)
+        {
+            if (inKevinballStarting)
+                return;
+
+            kevinballStartTimer = 3f;
+            inKevinballStarting = true; 
+            BroadcastMChat(frame, "Starting Kevinball match in 3 seconds...");
+        }
+
+        public void RunKevinballMatch()
+        {
+            if (KevinballPlayerIDs.Count < 2)
+                return;
+
+            if (ActiveKevinballMatch)
+                return;
+
+            uint player1 = 0;
+            uint player2 = 0;
+            ActiveKevinballMatch = true; 
+
+            if(firstKevinball || !KevinballPlayerIDs.Contains(LastKevinballWinner) || KevinballPlayerIDs.Count == 2 || KevinballQueue.Count == 0)
+            {
+                player1 = KevinballPlayerIDs[0];
+                player2 = KevinballPlayerIDs[1];
+                firstKevinball = false;
+                KevinballQueue = new List<uint>(KevinballPlayerIDs);
+                KevinballQueue.Remove(player1);
+                KevinballQueue.Remove(player2);
+            }
+            else
+            {
+                player1 = LastKevinballWinner;
+                KevinballQueue.Add(LastKevinballLoser);
+                
+            }
+
+            if (!PlayerMap.ContainsKey(player1) || !PlayerMap.ContainsKey(player2) || !KevinballScores.ContainsKey(player1) || !KevinballScores.ContainsKey(player2))
+                return;
+
+            string p1Name = PlayerMap[player1].Name;
+            string p2Name = PlayerMap[player2].Name;
+            string p1Score = KevinballScores[player1].X.ToString() + " - " + KevinballScores[player1].Y.ToString();
+            string p2Score = KevinballScores[player2].X.ToString() + " - " + KevinballScores[player2].Y.ToString();
+            //BroadcastMChat(new GhostNetFrame
+            //{
+            //    HHead = new ChunkHHead
+            //    {
+            //        PlayerID = uint.MaxValue;
+            //},
+            //}, "Starting Kevinball!" + p1Name + " [" + p1Score + "] vs. " + p2Name + " [" + p2Score + "]");
+
+            string finalString = "Starting Kevinball! " + p1Name + " [" + p1Score + "] vs. " + p2Name + " [" + p2Score + "]";
+
+            BroadcastMChat(new GhostNetFrame
+            {
+                HHead = new ChunkHHead
+                {
+                    PlayerID = uint.MaxValue
+                }
+            }, finalString );
+
+            GhostNetFrame frame = new GhostNetFrame
+            {
+                HHead = new ChunkHHead
+                {
+                    PlayerID = uint.MaxValue
+                }
+            };
+
+            ChunkMKevinballStart chunk = new ChunkMKevinballStart
+            {
+                Player1 = player1,
+                Player2 = player2
+            };
+
+            frame.Add(chunk);
+            PropagateM(frame);
+
+
+            //Send Kevinball start chunk with both player ids 
+
+        }
+
+        public void EndKevinballMatch(uint winner, uint loser)
+        {
+            ActiveKevinballMatch = false;
+            LastKevinballWinner = winner;
+            LastKevinballLoser = loser;
+            KevinballScores[winner] = new Vector2(KevinballScores[winner].X + 1, KevinballScores[winner].Y);
+            KevinballScores[loser] = new Vector2(KevinballScores[loser].X, KevinballScores[loser].Y + 1);
+
+            if (!PlayerMap.ContainsKey(winner))
+                return;
+
+            string finalString = PlayerMap[winner].Name + " wins!";
+
+            BroadcastMChat(new GhostNetFrame
+            {
+                HHead = new ChunkHHead
+                {
+                    PlayerID = uint.MaxValue
+                }
+            }, finalString);
+
+            GhostNetFrame frame = new GhostNetFrame
+            {
+                HHead = new ChunkHHead
+                {
+                    PlayerID = uint.MaxValue
+                }
+            };
+
+            ChunkMKevinballEnd chunk = new ChunkMKevinballEnd
+            {
+                Winner = winner
+            };
+
+            frame.Add(chunk);
+            PropagateM(frame);
         }
 
         #endregion
@@ -640,6 +934,21 @@ namespace Celeste.Mod.Ghost.Net {
             Logger.Log(LogLevel.Verbose, "ghostnet-s", $"Client #{id} ({con.ManagementEndPoint}) disconnected");
 
             Connections[(int) id] = null;
+
+            if(KevinballPlayerIDs.Contains(id))
+            {
+                KevinballPlayerIDs.Remove(id);
+            }
+
+            if(KevinballScores.ContainsKey(id))
+            {
+                KevinballScores.Remove(id);
+            }
+
+            if (KevinballQueue.Contains(id))
+            {
+                KevinballQueue.Remove(id);
+            }
 
             ConnectionMap[con.ManagementEndPoint] = null;
 
