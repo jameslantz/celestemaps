@@ -145,6 +145,56 @@ namespace Celeste.Mod.Ghost.Net {
         };
 
         [GhostNetCommandField]
+        public static GhostNetCommand Shuffle = new GhostNetDCommand
+        {
+            Name = "shuffle",
+            Args = "<num>",
+            Help = "Use shuffle X to shuffle after every X levels. Use shuffle 0 to stop shuffling.",
+            OnParse = GhostNetDCommand.Parsers.Everything,
+            OnRun = (cmd, env, args) => {
+                int shuffleMode = 0;
+                if (args.Length >= 2)
+                    throw new Exception("Accepts 1 or 0 arguments.");
+
+                if (args.Length == 1)
+                    shuffleMode = args[0].Int;
+
+                env.Server.SetShuffle(shuffleMode);
+            }
+        };
+
+        [GhostNetCommandField]
+        public static GhostNetCommand Level = new GhostNetDCommand
+        {
+            Name = "level",
+            Args = "<num>",
+            Help = "Use level X to change to that level. Use level with no argument to go to the next level.",
+            OnParse = GhostNetDCommand.Parsers.Everything,
+            OnRun = (cmd, env, args) => {
+                int levelSelect = -1;
+                if (args.Length >= 2)
+                    throw new Exception("Accepts 1 or 0 arguments.");
+
+                if (args.Length == 1)
+                    levelSelect = args[0].Int;
+
+                env.Server.SetLevel(levelSelect);
+            }
+        };
+
+        [GhostNetCommandField]
+        public static GhostNetCommand Spec = new GhostNetDCommand
+        {
+            Name = "spec",
+            Args = "<none>",
+            Help = "Switch to or from spectating",
+            OnParse = GhostNetDCommand.Parsers.Everything,
+            OnRun = (cmd, env, args) => {
+                env.Server.SetSpec(env.PlayerID);
+            }
+        };
+
+        [GhostNetCommandField]
         public static GhostNetCommand Teleport = new GhostNetDCommand {
             Name = "tp",
             Args = "<id>",

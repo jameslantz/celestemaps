@@ -29,6 +29,10 @@ namespace Celeste.Mod.Ghost.Net {
 
         public int UpdateIndex;
 
+        public const int KevinballWin = 0;
+        public const int CoinWin = 1;
+        public const int DeathWin = 2; 
+
         public Player Player;
         public Session Session;
         public GhostRecorder GhostRecorder;
@@ -54,6 +58,9 @@ namespace Celeste.Mod.Ghost.Net {
 
         public List<MultiplayerControlSwitch> ControlSwitches = new List<MultiplayerControlSwitch>();
         public List<MultiplayerTriggerSpikes> mTriggerSpikes = new List<MultiplayerTriggerSpikes>();
+
+        public KevinballP1SpawnTrigger p1Spawn = null;
+        public KevinballP2SpawnTrigger p2Spawn = null; 
 
         public bool PlayingKevinball = false;
         public bool InStartRoutine = false;
@@ -109,24 +116,30 @@ namespace Celeste.Mod.Ghost.Net {
                     return;
 
                 if (value) {
-                    _ChatWasPaused = Engine.Scene.Paused;
-                    //if(!PlayingKevinball)
-                    //    Engine.Scene.Paused = true;
-                    VirtualPause = true; 
+                    _ChatWasPaused = VirtualPause;
+                    if(!PlayingKevinball)
+                    {
+                        Engine.Scene.Paused = true;
+                        VirtualPause = true;
+                    }
+                    //MInput.Disabled = true; 
                     // If we're in a level, add a dummy overlay to prevent the pause menu from handling input.
-                    if (Engine.Scene is Level)
-                        ((Level) Engine.Scene).Overlay = _ChatLevelOverlay = new Overlay();
+                    //if (Engine.Scene is Level)
+                    //    ((Level) Engine.Scene).Overlay = _ChatLevelOverlay = new Overlay();
 
                     _ChatRepeatIndex = 0;
 
                 } else {
                     ChatInput = "";
-                    //if(!PlayingKevinball)
-                    //    Engine.Scene.Paused = _ChatWasPaused;
-                    VirtualPause = _ChatWasPaused;
+                    if(!PlayingKevinball)
+                    {
+                        Engine.Scene.Paused = _ChatWasPaused;
+                        VirtualPause = _ChatWasPaused;
+                    }
+                    //MInput.Disabled = false;
                     _ChatConsumeInput = 2;
-                    if (_ChatLevelOverlay != null && (Engine.Scene as Level)?.Overlay == _ChatLevelOverlay)
-                        ((Level) Engine.Scene).Overlay = null;
+                    //if (_ChatLevelOverlay != null && (Engine.Scene as Level)?.Overlay == _ChatLevelOverlay)
+                    //    ((Level) Engine.Scene).Overlay = null;
                 }
 
                 _ChatVisible = value;
@@ -165,6 +178,8 @@ namespace Celeste.Mod.Ghost.Net {
             }, true);
         }
 
+        public Color KevinColor = Calc.HexToColor("ff8a23");
+
         public override void Update(GameTime gameTime) {
             SendUUpdate();
 
@@ -177,6 +192,11 @@ namespace Celeste.Mod.Ghost.Net {
             bool inputDisabled = MInput.Disabled;
             MInput.Disabled = false;
 
+            if(KevinHittable && Player != null && Player.Dashes > 0)
+            {
+                Player.Hair.Color = KevinColor; 
+            }
+
             if(PlayingKevinball)
             {
                 if (crushBlock != null)
@@ -185,11 +205,11 @@ namespace Celeste.Mod.Ghost.Net {
                     {
                         if (crushBlock.Position.X < 200f)
                         {
-                            SendUKevinballWin(P1_id, P2_id);
+                            SendUKevinballWin(P1_id, P2_id, KevinballWin);
                         }
                         else
                         {
-                            SendUKevinballWin(P2_id, P1_id);
+                            SendUKevinballWin(P2_id, P1_id, KevinballWin);
                         }
                     }
                 }
@@ -206,11 +226,11 @@ namespace Celeste.Mod.Ghost.Net {
 
                 if(p1Count >= ControlSwitches.Count)
                 {
-                    SendUKevinballWin(P1_id, P2_id);
+                    SendUKevinballWin(P1_id, P2_id, CoinWin);
                 }
                 else if(p2Count >= ControlSwitches.Count)
                 {
-                    SendUKevinballWin(P2_id, P1_id);
+                    SendUKevinballWin(P2_id, P1_id, CoinWin);
                 }
             }
 
@@ -225,33 +245,33 @@ namespace Celeste.Mod.Ghost.Net {
 
                 if(StartRoutineState == 4 && StartRoutineTimer <= 3f)
                 {
-                    string text = "Starting in 3...";
-                    ChatLog.Insert(0, new ChatLine(uint.MaxValue, PlayerID, "", "KEVINBALL", text));
-                    ChatRepeat.Insert(1, text);
+                    //string text = "Starting in 3...";
+                    //ChatLog.Insert(0, new ChatLine(uint.MaxValue, PlayerID, "", "KEVINBALL", text));
+                    //ChatRepeat.Insert(1, text);
                     StartRoutineState = 3; 
                 }
 
                 if (StartRoutineState == 3 && StartRoutineTimer <= 2f)
                 {
-                    string text = "Starting in 2...";
-                    ChatLog.Insert(0, new ChatLine(uint.MaxValue, PlayerID, "", "KEVINBALL", text));
-                    ChatRepeat.Insert(1, text);
+                    //string text = "Starting in 2...";
+                    //ChatLog.Insert(0, new ChatLine(uint.MaxValue, PlayerID, "", "KEVINBALL", text));
+                    //ChatRepeat.Insert(1, text);
                     StartRoutineState = 2;
                 }
 
                 if (StartRoutineState == 2 && StartRoutineTimer <= 1f)
                 {
-                    string text = "Starting in 1...";
-                    ChatLog.Insert(0, new ChatLine(uint.MaxValue, PlayerID, "", "KEVINBALL", text));
-                    ChatRepeat.Insert(1, text);
+                    //string text = "Starting in 1...";
+                    //ChatLog.Insert(0, new ChatLine(uint.MaxValue, PlayerID, "", "KEVINBALL", text));
+                    //ChatRepeat.Insert(1, text);
                     StartRoutineState = 1;
                 }
 
                 if (StartRoutineState == 1 && StartRoutineTimer <= 0f)
                 {
-                    string text = "KEVINBALL!!";
-                    ChatLog.Insert(0, new ChatLine(uint.MaxValue, PlayerID, "", "KEVINBALL", text));
-                    ChatRepeat.Insert(1, text);
+                    //string text = "KEVINBALL!!";
+                    //ChatLog.Insert(0, new ChatLine(uint.MaxValue, PlayerID, "", "KEVINBALL", text));
+                    //ChatRepeat.Insert(1, text);
                     StartRoutineState = 0;
                 }
 
@@ -274,7 +294,7 @@ namespace Celeste.Mod.Ghost.Net {
                 EmoteWheel.Selected = -1;
             }
 
-            if (!(Engine.Scene?.Paused ?? true)) {
+            if (!(VirtualPause == true)) {
                 string input = ChatInput;
                 ChatVisible = false;
                 ChatInput = input;
@@ -285,6 +305,7 @@ namespace Celeste.Mod.Ghost.Net {
 
             } else if (ChatVisible) {
                 Engine.Commands.Open = false;
+                //Engine.Commands.Enabled = false;
 
                 if (MInput.Keyboard.Pressed(Keys.Enter)) {
                     SendMChat(ChatInput);
@@ -301,6 +322,7 @@ namespace Celeste.Mod.Ghost.Net {
             }
 
             if (!ChatVisible) {
+                //Engine.Commands.Enabled = true; 
                 if (MInput.Keyboard.Pressed(Keys.D1))
                     SendMEmote(0);
                 else if (MInput.Keyboard.Pressed(Keys.D2))
@@ -556,11 +578,14 @@ namespace Celeste.Mod.Ghost.Net {
             return ghost;
         }
 
+        public bool InKevinballMap = false;
+
         public virtual void LoadedKevinballLevel(Level level)
         {
             PlayingKevinball = false;
-            KevinHittable = false; 
+            KevinHittable = false;
             //level.PauseLock = true; 
+            InKevinballMap = true; 
             SendULoadedKevinball(PlayerID);
         }
 
@@ -576,16 +601,33 @@ namespace Celeste.Mod.Ghost.Net {
             InStartRoutine = true;
             StartRoutineTimer = 2f;
             StartRoutineState = 3;
+
+            Vector2 p1SpawnV = new Vector2(80f, 140f);
+            Vector2 p2SpawnV = new Vector2(240f, 140f);
+
+            if(p1Spawn != null)
+            {
+                float x = p1Spawn.CenterX;
+                float y = p1Spawn.CenterY;
+                p1SpawnV = new Vector2(x, y);
+            }
+
+            if (p2Spawn != null)
+            {
+                float x = p2Spawn.CenterX;
+                float y = p2Spawn.CenterY;
+                p2SpawnV = new Vector2(x, y);
+            }
+
             if (player1 == PlayerID)
             {
-                Player.Position = new Vector2(80f,140f);
+                Player.Center = p1SpawnV;
                 Player.StateMachine.ForceState(Player.StFrozen);
-                Player.Speed = new Vector2(0, 0);
             }
 
             else if (player2 == PlayerID)
             {
-                Player.Position = new Vector2(240f, 140f);
+                Player.Center = p2SpawnV;
                 Player.StateMachine.ForceState(Player.StFrozen);
             }
 
@@ -814,7 +856,8 @@ namespace Celeste.Mod.Ghost.Net {
             if(PlayingKevinball)
             {
                 uint winner = P1_id;
-                uint loser = P2_id; 
+                uint loser = P2_id;
+                uint wintype = DeathWin;
 
                 if(with == P1_id)
                 {
@@ -825,7 +868,8 @@ namespace Celeste.Mod.Ghost.Net {
                 Connection.SendUpdate(new GhostNetFrame {
                     new ChunkUKevinballWin {
                         Winner = winner, 
-                        Loser = loser
+                        Loser = loser,
+                        WinType = wintype
                     }
                 }, true);
             }
@@ -839,15 +883,16 @@ namespace Celeste.Mod.Ghost.Net {
             }
         }
 
-        public virtual void SendUKevinballWin(uint winner, uint loser)
+        public virtual void SendUKevinballWin(uint winner, uint loser, uint winType)
         {
             if (Connection == null)
                 return;
 
             Connection.SendUpdate(new GhostNetFrame {
                 new ChunkUKevinballWin {
-                    Winner = winner, 
-                    Loser = loser
+                    Winner = winner,
+                    Loser = loser,
+                    WinType = winType
                 }
             }, true);
         }
@@ -1310,9 +1355,12 @@ namespace Celeste.Mod.Ghost.Net {
             Engine.Scene.Add(emote);
         }
 
+        public uint NextKevinballLevel = 0; 
+
         public virtual void HandleMKevinballStart(GhostNetConnection con, GhostNetFrame frame)
         {
             ChunkMKevinballStart start = frame;
+            NextKevinballLevel = start.NextLevel; 
             StartKevinballRoutine(start.Player1, start.Player2);
         }
 
@@ -1485,6 +1533,19 @@ namespace Celeste.Mod.Ghost.Net {
         {
             if (!Player.Dead && lastPlayerDeath > 3f)
                 Player.Die(new Vector2(0, 0));
+
+            ChunkMKevinballEnd end = frame; 
+
+            if(end.Wintype == DeathWin)
+            {
+                Audio.Play("event:/kevinball_kevingoal");
+            }
+            else if(end.Wintype == KevinballWin)
+            {
+                int num = Calc.Random.Range(1, 4);
+                string str = "event:/kevinball_ouch_" + num.ToString();
+                Audio.Play(str);
+        }
         }
 
         public virtual void HandleUAudioPlay(GhostNetConnection con, GhostNetFrame frame) {
@@ -1650,7 +1711,7 @@ namespace Celeste.Mod.Ghost.Net {
             //Logger.Log(LogLevel.Info, "GHOSTSWITCHES", GhostTouchSwitches.Count.ToString());
             FirstGhostSwitch = true;
             FirstControlSwitch = true;
-            FirstTriggerSpike = true; 
+            FirstTriggerSpike = true;
 
             Logger.Log(LogLevel.Info, "ghost-c", $"Stepping into {Session.Area.GetSID()} {(char) ('A' + Session.Area.Mode)} {Session.Level}");
 
@@ -1681,6 +1742,7 @@ namespace Celeste.Mod.Ghost.Net {
 
         public void OnExitLevel(Level level, LevelExit exit, LevelExit.Mode mode, Session session, HiresSnow snow) {
             Session = null;
+            InKevinballMap = false;
 
             Cleanup();
 
@@ -1699,6 +1761,32 @@ namespace Celeste.Mod.Ghost.Net {
 
             if(PlayingKevinball)
                 SendUPlayerDeath(PlayerID);
+
+            if(InKevinballMap)
+            {
+                int targetLevel = (int)NextKevinballLevel % Session.MapData.Levels.Count;
+                LevelData target = Session.MapData.Levels[targetLevel];
+                Session.Level = target.Name;
+                Session.RespawnPoint = target.Spawns[0];
+            }
+
+            //This will eventually end up in HandleMKevinballEnd 
+            //if(Session.Level == "1")
+            //{
+            //    Logger.Log("KEVINBALL", "moving to two");
+            //    Session.Level = "2";
+            //    List<Vector2> spawns = Session.MapData.Levels[1].Spawns;
+            //    Session.RespawnPoint = spawns[0];
+            //}
+
+            //else if (Session.Level == "2")
+            //{
+            //    Logger.Log("KEVINBALL", "moving to one");
+            //    Session.Level = "1";
+            //    List<Vector2> spawns = Session.MapData.Levels[0].Spawns;
+            //    Session.RespawnPoint = spawns[0];
+            //}
+
 
             if (!player.CollideCheck<MultiplayerDeathTrigger>())
                 return; 

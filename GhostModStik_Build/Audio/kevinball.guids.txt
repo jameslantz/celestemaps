@@ -1,0 +1,15 @@
+{ea297d4c-7404-4981-8790-7b49b809d94c} bank:/kevinball
+{f9ef1a86-28fc-413d-8d5c-c27d435f1ae3} event:/kevinball_1
+{d93fdad4-8310-41a8-8152-a7eb86a90b0a} event:/kevinball_2
+{1fe58b6b-1fcf-45c1-9029-960f77ac832f} event:/kevinball_3
+{c60e080c-4963-4056-875d-6c5d3d20057f} event:/kevinball_4
+{fb760419-1135-4437-bac7-786b961157c7} event:/kevinball_5
+{9f608e8b-9f94-4e10-a31c-dde44b48deb8} event:/kevinball_6
+{3c2b42c1-dbfb-49f0-9be1-e4ede8763097} event:/kevinball_7
+{58709002-7406-42cb-8465-cb6d856f1ceb} event:/kevinball_8_lose
+{719c55aa-8cb9-4650-bb6d-5efe0fc82ff1} event:/kevinball_8_win
+{47fd3b93-9974-468f-9f42-2b34c091c0b0} event:/kevinball_kevingoal
+{a3955357-589b-4c45-864f-f267242e05d9} event:/kevinball_ouch_1
+{45a36211-aabb-43c8-bc4c-a45f4ce2df20} event:/kevinball_ouch_2
+{ffc46096-7715-4651-a2f3-32a883ea8839} event:/kevinball_ouch_3
+{1859f6fb-1099-4af6-9137-f5b33f84b2fa} event:/kevinball_ouch_4

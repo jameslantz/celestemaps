@@ -45,7 +45,8 @@ namespace Celeste.Mod.Ghost.Net {
         public uint LastKevinballWinner = 0;
         public uint LastKevinballLoser = 1;
         public Dictionary<uint, Vector2> KevinballScores = new Dictionary<uint, Vector2>();
-        public bool ActiveKevinballMatch = false; 
+        public bool ActiveKevinballMatch = false;
+        public uint CurrentKevinballLevel = 0; 
 
         public List<ChunkMChat> ChatLog = new List<ChunkMChat>();
 
@@ -633,16 +634,16 @@ namespace Celeste.Mod.Ghost.Net {
 
             ChunkUKevinballWin win = frame;
 
-            TryEndKevin(win.Winner, win.Loser);
+            TryEndKevin(win.Winner, win.Loser, win.WinType);
         }
 
-        public void TryEndKevin(uint winner, uint loser)
+        public void TryEndKevin(uint winner, uint loser, uint wintype)
         {
             if (!ActiveKevinballMatch)
                 return;
 
             ActiveKevinballMatch = false;
-            EndKevinballMatch(winner, loser);
+            EndKevinballMatch(winner, loser, wintype);
         }
 
         public virtual void HandleULoadedKevinball(GhostNetConnection con, GhostNetFrame frame)
@@ -662,6 +663,7 @@ namespace Celeste.Mod.Ghost.Net {
             if(!KevinballPlayerIDs.Contains(press.With))
             {
                 KevinballPlayerIDs.Add(press.With);
+                KevinballQueue.Add(press.With);
             }
 
             if(!KevinballScores.ContainsKey(press.With))
@@ -672,7 +674,7 @@ namespace Celeste.Mod.Ghost.Net {
             if (ActiveKevinballMatch)
                 return; 
 
-            if(KevinballPlayerIDs.Count >= 2)
+            if(KevinballPlayerIDs.Count - SpectatingPlayers.Count >= 2)
             {
                 StartKevinball(con, frame);
             }
@@ -683,6 +685,7 @@ namespace Celeste.Mod.Ghost.Net {
         public int lastPotIndex = 0;
         public bool firstKevinball = true;
         public List<uint> KevinballQueue = new List<uint>();
+        public List<uint> SpectatingPlayers = new List<uint>(); 
 
         public void StartKevinball(GhostNetConnection con, GhostNetFrame frame)
         {
@@ -704,7 +707,17 @@ namespace Celeste.Mod.Ghost.Net {
 
             uint player1 = 0;
             uint player2 = 0;
-            ActiveKevinballMatch = true; 
+            ActiveKevinballMatch = true;
+            CurrentGameTicker++; 
+
+            if(ShuffleMode > 0)
+            {
+                if(CurrentGameTicker >= ShuffleMode)
+                {
+                    CurrentGameTicker = 0;
+                    CurrentKevinballLevel = CurrentKevinballLevel + 1; 
+                }
+            }
 
             if(firstKevinball || !KevinballPlayerIDs.Contains(LastKevinballWinner) || KevinballPlayerIDs.Count == 2 || KevinballQueue.Count == 0)
             {
@@ -719,7 +732,8 @@ namespace Celeste.Mod.Ghost.Net {
             {
                 player1 = LastKevinballWinner;
                 KevinballQueue.Add(LastKevinballLoser);
-                
+                player2 = KevinballQueue[0];
+                KevinballQueue.RemoveAt(0);
             }
 
             if (!PlayerMap.ContainsKey(player1) || !PlayerMap.ContainsKey(player2) || !KevinballScores.ContainsKey(player1) || !KevinballScores.ContainsKey(player2))
@@ -758,7 +772,8 @@ namespace Celeste.Mod.Ghost.Net {
             ChunkMKevinballStart chunk = new ChunkMKevinballStart
             {
                 Player1 = player1,
-                Player2 = player2
+                Player2 = player2,
+                NextLevel = CurrentKevinballLevel
             };
 
             frame.Add(chunk);
@@ -769,7 +784,60 @@ namespace Celeste.Mod.Ghost.Net {
 
         }
 
-        public void EndKevinballMatch(uint winner, uint loser)
+        public uint ShuffleMode = 0;
+        public uint CurrentGameTicker = 0; 
+
+        public void SetShuffle(int mode)
+        {
+            if(mode == 0)
+            {
+                if (ShuffleMode == 0)
+                    mode = 5;
+                else
+                    mode = 0; 
+            }
+            ShuffleMode = (uint)mode;
+
+            BroadcastMChat(new GhostNetFrame
+            {
+                HHead = new ChunkHHead
+                {
+                    PlayerID = uint.MaxValue
+                }
+            }, "Shuffle mode changed");
+        }
+
+        public void SetLevel(int id)
+        {
+            if (id == -1)
+                CurrentKevinballLevel++;
+            else
+                CurrentKevinballLevel = (uint)id;
+
+            BroadcastMChat(new GhostNetFrame
+            {
+                HHead = new ChunkHHead
+                {
+                    PlayerID = uint.MaxValue
+                }
+            }, "Level changed");
+        }
+
+        public void SetSpec(uint id)
+        {
+            if(SpectatingPlayers.Contains(id))
+            {
+                SpectatingPlayers.Remove(id);
+                KevinballQueue.Add(id);
+            }
+            else
+            {
+                SpectatingPlayers.Add(id);
+                KevinballQueue.Remove(id);
+            }
+        }
+
+        public void EndKevinballMatch(uint winner, uint loser, uint wintype)
         {
             ActiveKevinballMatch = false;
             LastKevinballWinner = winner;
@@ -781,6 +849,13 @@ namespace Celeste.Mod.Ghost.Net {
                 return;
 
             string finalString = PlayerMap[winner].Name + " wins!";
+
+            if (wintype == GhostNetClient.KevinballWin)
+                finalString = finalString + " GOOOOAAAAALLLL!!";
+            else if (wintype == GhostNetClient.CoinWin)
+                finalString = finalString + " Coin victory!";
+            else if (wintype == GhostNetClient.DeathWin)
+                finalString = finalString + " Survival victory!";
 
             BroadcastMChat(new GhostNetFrame
             {
@@ -800,7 +875,8 @@ namespace Celeste.Mod.Ghost.Net {
 
             ChunkMKevinballEnd chunk = new ChunkMKevinballEnd
             {
-                Winner = winner
+                Winner = winner,
+                Wintype = wintype
             };
 
             frame.Add(chunk);

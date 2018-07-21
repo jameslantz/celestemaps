@@ -24,22 +24,26 @@ namespace Celeste.Mod.Ghost.Net
         public bool IsValid => true;
         public bool IsSendable => true;
 
-        public uint Winner; 
+        public uint Winner;
+        public uint Wintype;
 
         public void Read(BinaryReader reader)
         {
             Winner = reader.ReadUInt32();
+            Wintype = reader.ReadUInt32();
         }
 
         public void Write(BinaryWriter writer)
         {
             writer.Write(Winner);
+            writer.Write(Wintype);
         }
 
         public object Clone()
             => new ChunkMKevinballEnd
             {
-                Winner = Winner
+                Winner = Winner,
+                Wintype = Wintype
             };
 
         public static implicit operator ChunkMKevinballEnd(GhostNetFrame frame)

@@ -177,10 +177,13 @@ namespace Celeste.Mod.Ghost.Net
             if(cooldown > 0 )
                 cooldown = cooldown - Engine.DeltaTime;
 
-            if (cooldown > 0 || !GhostNetModule.Instance.Client.KevinHittable) 
-                face.Color = cdColor;
-            else
-                face.Color = Color.White; 
+            if(GhostNetModule.Instance != null && GhostNetModule.Instance.Client != null)
+            {
+                if (cooldown > 0 || !GhostNetModule.Instance.Client.KevinHittable)
+                    face.Color = cdColor;
+                else
+                    face.Color = Color.White;
+            }
 
             if (crushDir == Vector2.Zero)
             {
@@ -520,7 +523,7 @@ namespace Celeste.Mod.Ghost.Net
             }
 
             canActivate = false;
-            cooldown = 1f; //MP COOLDOWN 
+            cooldown = 0f; //MP COOLDOWN 
             attackCoroutine.Replace(AttackSequence());
             base.ClearRemainder();
             TurnOffImages();

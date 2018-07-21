@@ -102,6 +102,8 @@
     <Compile Include="GhostNetModule.cs" />
     <Compile Include="GhostNetTouchSwitch.cs" />
     <Compile Include="KevinballEndzoneTrigger.cs" />
+    <Compile Include="KevinballP1SpawnTrigger.cs" />
+    <Compile Include="KevinballP2SpawnTrigger.cs" />
     <Compile Include="KevinRefill.cs" />
     <Compile Include="MultiplayerControlSwitch.cs" />
     <Compile Include="MultiplayerDeathTrigger.cs" />

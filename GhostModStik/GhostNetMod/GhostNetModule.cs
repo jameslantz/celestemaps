@@ -132,6 +132,24 @@ namespace Celeste.Mod.Ghost.Net {
                 return true;
             }
 
+            if (entityData.Name == "kevinballP1SpawnTrigger")
+            {
+                KevinballP1SpawnTrigger trigger = new KevinballP1SpawnTrigger(entityData, offset);
+                level.Add(trigger);
+                if (Client != null && Client.Connection != null)
+                    Client.p1Spawn = trigger; 
+                return true;
+            }
+
+            if (entityData.Name == "kevinballP2SpawnTrigger")
+            {
+                KevinballP2SpawnTrigger trigger = new KevinballP2SpawnTrigger(entityData, offset);
+                level.Add(trigger);
+                if (Client != null && Client.Connection != null)
+                    Client.p2Spawn = trigger;
+                return true;
+            }
+
             if (entityData.Name == "multiplayerTriggerSpikesDown")
             {
                 MultiplayerTriggerSpikes spike = new MultiplayerTriggerSpikes(entityData, offset, MultiplayerTriggerSpikes.Directions.Down);

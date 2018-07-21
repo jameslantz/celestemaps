@@ -31,7 +31,7 @@ namespace Celeste.Mod.Ghost.Net
 
         private Sprite icon = new Sprite(GFX.Game, "objects/touchswitch/icon");
 
-        private Color inactiveColor = Calc.HexToColor("5fcde4");
+        private Color inactiveColor = Calc.HexToColor("9b9b9b");
 
         private Color activeColor = Color.White;
 
@@ -151,18 +151,64 @@ namespace Celeste.Mod.Ghost.Net
 
             if(controllerIn != currentController)
             {
-                touchSfx.Play("event:/game/general/touchswitch_any", null, 0f);
                 currentController = controllerIn;
-                ControlSwitch.controller = controllerIn; 
-                if (ControlSwitch.Activate())
+                ControlSwitch.controller = controllerIn;
+
+                int startingNum = 8 - client.ControlSwitches.Count; 
+                int chimeNum = 0; 
+                int p1Chimes = 0;
+                int p2Chimes = 0; 
+                if (controllerIn == Controller.P1)
                 {
-                    SoundEmitter.Play("event:/game/general/touchswitch_last_oneshot");
-                    base.Add(new SoundSource("event:/game/general/touchswitch_last_cutoff"));
+                    foreach (MultiplayerControlSwitch mSwitch in client.ControlSwitches)
+                    {
+                        if (mSwitch.currentController == Controller.P1)
+                            p1Chimes++; 
+                    }
+                }
+
+                else
+                {
+                    foreach (MultiplayerControlSwitch mSwitch in client.ControlSwitches)
+                    {
+                        if (mSwitch.currentController == Controller.P2)
+                            p2Chimes++; 
+                    }
+                }
+
+                int realChimeNum = 0; 
+                uint loserID = uint.MaxValue;  
+                if(p1Chimes > p2Chimes)
+                {
+                    chimeNum = p1Chimes + startingNum;
+                    realChimeNum = p1Chimes; 
+                    loserID = client.P2_id; 
                 }
                 else
                 {
-                    SoundEmitter.Play("event:/game/general/touchswitch_last_oneshot");
+                    chimeNum = p2Chimes + startingNum;
+                    realChimeNum = p2Chimes; 
+                    loserID = client.P1_id; 
                 }
+
+                string str = "";
+
+                if (realChimeNum >= client.ControlSwitches.Count)
+                {
+                    if (client.PlayerID == loserID)
+                        str = "event:/kevinball_8_lose";
+                    else
+                        str = "event:/kevinball_8_win";
+                }
+                else
+                {
+                    if (chimeNum >= 7)
+                        chimeNum = 7;
+
+                    str = "event:/kevinball_" + chimeNum.ToString();
+                }
+
+                touchSfx.Play(str, null, 0f);
 
                 if (currentController == Controller.P1)
                     icon.Color = P1Color;
