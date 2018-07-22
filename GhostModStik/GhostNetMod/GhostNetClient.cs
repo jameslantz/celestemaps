@@ -1536,11 +1536,11 @@ namespace Celeste.Mod.Ghost.Net {
 
             ChunkMKevinballEnd end = frame; 
 
-            if(end.Wintype == DeathWin)
+            if(end.Wintype == KevinballWin)
             {
                 Audio.Play("event:/kevinball_kevingoal");
             }
-            else if(end.Wintype == KevinballWin)
+            else if(end.Wintype == DeathWin)
             {
                 int num = Calc.Random.Range(1, 4);
                 string str = "event:/kevinball_ouch_" + num.ToString();
@@ -1768,6 +1768,9 @@ namespace Celeste.Mod.Ghost.Net {
                 LevelData target = Session.MapData.Levels[targetLevel];
                 Session.Level = target.Name;
                 Session.RespawnPoint = target.Spawns[0];
+                Logger.Log("KEVINBALL_SHUFFLE", target.Name);
+                Logger.Log("KEVINBALL_SHUFFLE", target.Spawns[0].ToString());
+                Logger.Log("KEVINBALL_SHUFFLE", targetLevel.ToString());
             }
 
             //This will eventually end up in HandleMKevinballEnd 

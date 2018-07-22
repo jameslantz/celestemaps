@@ -1,0 +1,20 @@
+Icon: areas/core
+Interlude: false
+CassetteCheckpointIndex: 0
+IntroType: Jump 
+Mountain:
+    Idle:
+        Position: [ 7.936, 8.627, -2.439 ]
+        Target: [ 6.010, 9.053, -2.110 ]
+    Select:
+        Position: [ 6.064, 9.041, -2.938 ]
+        Target: [ 4.111, 9.468, -2.348 ]
+    Zoom:
+        Position: [ 2.576, 10.236, -1.147 ]
+        Target: [ 0.765, 10.918, -1.650 ]
+    Cursor: [ 0.643, 10.788, -0.988 ]
+    State: 2
+Modes:
+    - Path: kevinball/0/1
+      Inventory: Default
+    # Side B and C would be the next modes.

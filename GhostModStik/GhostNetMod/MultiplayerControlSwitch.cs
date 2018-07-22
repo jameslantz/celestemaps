@@ -158,22 +158,16 @@ namespace Celeste.Mod.Ghost.Net
                 int chimeNum = 0; 
                 int p1Chimes = 0;
                 int p2Chimes = 0; 
-                if (controllerIn == Controller.P1)
-                {
-                    foreach (MultiplayerControlSwitch mSwitch in client.ControlSwitches)
-                    {
-                        if (mSwitch.currentController == Controller.P1)
-                            p1Chimes++; 
-                    }
-                }
 
-                else
+                foreach (MultiplayerControlSwitch mSwitch in client.ControlSwitches)
                 {
-                    foreach (MultiplayerControlSwitch mSwitch in client.ControlSwitches)
-                    {
-                        if (mSwitch.currentController == Controller.P2)
-                            p2Chimes++; 
-                    }
+                    if (mSwitch.currentController == Controller.P1)
+                        p1Chimes++; 
+                }
+                foreach (MultiplayerControlSwitch mSwitch in client.ControlSwitches)
+                {
+                    if (mSwitch.currentController == Controller.P2)
+                        p2Chimes++; 
                 }
 
                 int realChimeNum = 0; 
@@ -207,6 +201,8 @@ namespace Celeste.Mod.Ghost.Net
 
                     str = "event:/kevinball_" + chimeNum.ToString();
                 }
+
+                Logger.Log("Kevinball", "PLAYING CHIME -- " + str);
 
                 touchSfx.Play(str, null, 0f);
 

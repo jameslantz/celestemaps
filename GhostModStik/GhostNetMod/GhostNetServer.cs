@@ -99,7 +99,19 @@ namespace Celeste.Mod.Ghost.Net {
             
             if(inKevinballStarting)
             {
-                kevinballStartTimer -= Engine.DeltaTime;
+                bool idle = false; 
+
+                if(PlayerMap.ContainsKey(KevinballP1) && PlayerMap.ContainsKey(KevinballP2))
+                {
+                    if(PlayerMap[KevinballP1] != null && PlayerMap[KevinballP2] != null)
+                    {
+                        if (PlayerMap[KevinballP1].Idle || PlayerMap[KevinballP2].Idle)
+                            idle = true;
+                    }
+                }
+
+                if(!idle)
+                    kevinballStartTimer -= Engine.DeltaTime;
                 if(kevinballStartTimer <= 0)
                 {
                     inKevinballStarting = false;
@@ -685,7 +697,9 @@ namespace Celeste.Mod.Ghost.Net {
         public int lastPotIndex = 0;
         public bool firstKevinball = true;
         public List<uint> KevinballQueue = new List<uint>();
-        public List<uint> SpectatingPlayers = new List<uint>(); 
+        public List<uint> SpectatingPlayers = new List<uint>();
+        public uint KevinballP1 = 0;
+        public uint KevinballP2 = 0; 
 
         public void StartKevinball(GhostNetConnection con, GhostNetFrame frame)
         {
@@ -695,31 +709,11 @@ namespace Celeste.Mod.Ghost.Net {
             kevinballStartTimer = 3f;
             inKevinballStarting = true; 
             BroadcastMChat(frame, "Starting Kevinball match in 3 seconds...");
-        }
 
-        public void RunKevinballMatch()
-        {
-            if (KevinballPlayerIDs.Count < 2)
-                return;
+            uint player1 = 0; 
+            uint player2 = 0; 
 
-            if (ActiveKevinballMatch)
-                return;
-
-            uint player1 = 0;
-            uint player2 = 0;
-            ActiveKevinballMatch = true;
-            CurrentGameTicker++; 
-
-            if(ShuffleMode > 0)
-            {
-                if(CurrentGameTicker >= ShuffleMode)
-                {
-                    CurrentGameTicker = 0;
-                    CurrentKevinballLevel = CurrentKevinballLevel + 1; 
-                }
-            }
-
-            if(firstKevinball || !KevinballPlayerIDs.Contains(LastKevinballWinner) || KevinballPlayerIDs.Count == 2 || KevinballQueue.Count == 0)
+            if (firstKevinball || !KevinballPlayerIDs.Contains(LastKevinballWinner) || KevinballPlayerIDs.Count == 2 || KevinballQueue.Count == 0)
             {
                 player1 = KevinballPlayerIDs[0];
                 player2 = KevinballPlayerIDs[1];
@@ -734,6 +728,32 @@ namespace Celeste.Mod.Ghost.Net {
                 KevinballQueue.Add(LastKevinballLoser);
                 player2 = KevinballQueue[0];
                 KevinballQueue.RemoveAt(0);
+            }
+
+            KevinballP1 = player1;
+            KevinballP2 = player2; 
+        }
+
+        public void RunKevinballMatch()
+        {
+            if (KevinballPlayerIDs.Count < 2)
+                return;
+
+            if (ActiveKevinballMatch)
+                return;
+
+            uint player1 = KevinballP1;
+            uint player2 = KevinballP2;
+            ActiveKevinballMatch = true;
+            CurrentGameTicker++; 
+
+            if(ShuffleMode > 0)
+            {
+                if(CurrentGameTicker >= ShuffleMode)
+                {
+                    CurrentGameTicker = 0;
+                    CurrentKevinballLevel = CurrentKevinballLevel + 1; 
+                }
             }
 
             if (!PlayerMap.ContainsKey(player1) || !PlayerMap.ContainsKey(player2) || !KevinballScores.ContainsKey(player1) || !KevinballScores.ContainsKey(player2))
@@ -798,13 +818,15 @@ namespace Celeste.Mod.Ghost.Net {
             }
             ShuffleMode = (uint)mode;
 
+            string str = "Shuffle mode set to " + ShuffleMode.ToString(); 
+
             BroadcastMChat(new GhostNetFrame
             {
                 HHead = new ChunkHHead
                 {
                     PlayerID = uint.MaxValue
                 }
-            }, "Shuffle mode changed");
+            }, str);
         }
 
         public void SetLevel(int id)
@@ -825,6 +847,9 @@ namespace Celeste.Mod.Ghost.Net {
 
         public void SetSpec(uint id)
         {
+            if (id == KevinballP1 || id == KevinballP2)
+                return; 
+
             if(SpectatingPlayers.Contains(id))
             {
                 SpectatingPlayers.Remove(id);
