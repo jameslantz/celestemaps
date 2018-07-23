@@ -26,24 +26,28 @@ namespace Celeste.Mod.Ghost.Net
 
         public uint Winner;
         public uint Wintype;
+        public uint NextLevel; 
 
         public void Read(BinaryReader reader)
         {
             Winner = reader.ReadUInt32();
             Wintype = reader.ReadUInt32();
+            NextLevel = reader.ReadUInt32();
         }
 
         public void Write(BinaryWriter writer)
         {
             writer.Write(Winner);
             writer.Write(Wintype);
+            writer.Write(NextLevel);
         }
 
         public object Clone()
             => new ChunkMKevinballEnd
             {
                 Winner = Winner,
-                Wintype = Wintype
+                Wintype = Wintype,
+                NextLevel = NextLevel
             };
 
         public static implicit operator ChunkMKevinballEnd(GhostNetFrame frame)

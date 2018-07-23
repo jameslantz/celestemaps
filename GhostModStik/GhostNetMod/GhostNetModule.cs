@@ -137,7 +137,10 @@ namespace Celeste.Mod.Ghost.Net {
                 KevinballP1SpawnTrigger trigger = new KevinballP1SpawnTrigger(entityData, offset);
                 level.Add(trigger);
                 if (Client != null && Client.Connection != null)
-                    Client.p1Spawn = trigger; 
+                {
+                    Client.p1Spawn = trigger.Center;
+                    Logger.Log("KEVINBALL", "Calling p1Spawn from Module.");
+                }
                 return true;
             }
 
@@ -146,7 +149,10 @@ namespace Celeste.Mod.Ghost.Net {
                 KevinballP2SpawnTrigger trigger = new KevinballP2SpawnTrigger(entityData, offset);
                 level.Add(trigger);
                 if (Client != null && Client.Connection != null)
-                    Client.p2Spawn = trigger;
+                {
+                    Client.p2Spawn = trigger.Center;
+                    Logger.Log("KEVINBALL", "Calling p2Spawn from Module.");
+                }
                 return true;
             }
 

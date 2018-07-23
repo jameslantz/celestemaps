@@ -26,20 +26,17 @@ namespace Celeste.Mod.Ghost.Net
 
         public uint Player1;
         public uint Player2;
-        public uint NextLevel; 
 
         public void Read(BinaryReader reader)
         {
             Player1 = reader.ReadUInt32();
-            Player2 = reader.ReadUInt32();
-            NextLevel = reader.ReadUInt32(); 
+            Player2 = reader.ReadUInt32(); 
         }
 
         public void Write(BinaryWriter writer)
         {
             writer.Write(Player1);
             writer.Write(Player2);
-            writer.Write(NextLevel);
         }
 
         public object Clone()
@@ -47,7 +44,6 @@ namespace Celeste.Mod.Ghost.Net
             {
                 Player1 = Player1,
                 Player2 = Player2,
-                NextLevel = NextLevel
             };
 
         public static implicit operator ChunkMKevinballStart(GhostNetFrame frame)

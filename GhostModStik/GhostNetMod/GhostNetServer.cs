@@ -117,6 +117,7 @@ namespace Celeste.Mod.Ghost.Net {
                     inKevinballStarting = false;
                     RunKevinballMatch();
                 }
+
             }
             base.Update(gameTime);
         }
@@ -676,6 +677,10 @@ namespace Celeste.Mod.Ghost.Net {
             {
                 KevinballPlayerIDs.Add(press.With);
                 KevinballQueue.Add(press.With);
+
+                //TESTING 
+                //KevinballPlayerIDs.Add(press.With);
+                //KevinballQueue.Add(press.With);
             }
 
             if(!KevinballScores.ContainsKey(press.With))
@@ -699,7 +704,7 @@ namespace Celeste.Mod.Ghost.Net {
         public List<uint> KevinballQueue = new List<uint>();
         public List<uint> SpectatingPlayers = new List<uint>();
         public uint KevinballP1 = 0;
-        public uint KevinballP2 = 0; 
+        public uint KevinballP2 = 0;
 
         public void StartKevinball(GhostNetConnection con, GhostNetFrame frame)
         {
@@ -734,6 +739,8 @@ namespace Celeste.Mod.Ghost.Net {
             KevinballP2 = player2; 
         }
 
+        public bool justShuffled = false; 
+
         public void RunKevinballMatch()
         {
             if (KevinballPlayerIDs.Count < 2)
@@ -745,16 +752,6 @@ namespace Celeste.Mod.Ghost.Net {
             uint player1 = KevinballP1;
             uint player2 = KevinballP2;
             ActiveKevinballMatch = true;
-            CurrentGameTicker++; 
-
-            if(ShuffleMode > 0)
-            {
-                if(CurrentGameTicker >= ShuffleMode)
-                {
-                    CurrentGameTicker = 0;
-                    CurrentKevinballLevel = CurrentKevinballLevel + 1; 
-                }
-            }
 
             if (!PlayerMap.ContainsKey(player1) || !PlayerMap.ContainsKey(player2) || !KevinballScores.ContainsKey(player1) || !KevinballScores.ContainsKey(player2))
                 return;
@@ -792,8 +789,7 @@ namespace Celeste.Mod.Ghost.Net {
             ChunkMKevinballStart chunk = new ChunkMKevinballStart
             {
                 Player1 = player1,
-                Player2 = player2,
-                NextLevel = CurrentKevinballLevel
+                Player2 = player2
             };
 
             frame.Add(chunk);
@@ -804,7 +800,7 @@ namespace Celeste.Mod.Ghost.Net {
 
         }
 
-        public uint ShuffleMode = 0;
+        public uint ShuffleMode = 10;
         public uint CurrentGameTicker = 0; 
 
         public void SetShuffle(int mode)
@@ -812,13 +808,13 @@ namespace Celeste.Mod.Ghost.Net {
             if(mode == 0)
             {
                 if (ShuffleMode == 0)
-                    mode = 5;
+                    mode = 10;
                 else
                     mode = 0; 
             }
             ShuffleMode = (uint)mode;
 
-            string str = "Shuffle mode set to " + ShuffleMode.ToString(); 
+            string str = "Server will shuffle levels after first player to " + ShuffleMode.ToString() + " wins"; 
 
             BroadcastMChat(new GhostNetFrame
             {
@@ -898,10 +894,48 @@ namespace Celeste.Mod.Ghost.Net {
                 }
             };
 
+            bool shouldShuffle = false;
+
+            if (ShuffleMode > 0)
+            {
+                foreach (KeyValuePair<uint, Vector2> kvp in KevinballScores)
+                {
+                    if (kvp.Value.X >= ShuffleMode)
+                    {
+                        shouldShuffle = true;
+                        string name = PlayerMap[kvp.Key].Name;
+                        string str = name + " wins the map! Shuffling maps...";
+                        BroadcastMChat(new GhostNetFrame
+                        {
+                            HHead = new ChunkHHead
+                            {
+                                PlayerID = uint.MaxValue
+                            }
+                        }, str);
+                    }
+                }
+
+                if (shouldShuffle == true)
+                {
+                    CurrentKevinballLevel = CurrentKevinballLevel + 1;
+                    justShuffled = true;
+                }
+            }
+
+            if (shouldShuffle)
+            {
+                List<uint> keys = KevinballScores.Keys.ToList();
+                foreach (uint key in keys)
+                {
+                    KevinballScores[key] = new Vector2(0, 0);
+                }
+            }
+
             ChunkMKevinballEnd chunk = new ChunkMKevinballEnd
             {
                 Winner = winner,
-                Wintype = wintype
+                Wintype = wintype,
+                NextLevel = CurrentKevinballLevel
             };
 
             frame.Add(chunk);

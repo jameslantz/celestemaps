@@ -59,8 +59,9 @@ namespace Celeste.Mod.Ghost.Net {
         public List<MultiplayerControlSwitch> ControlSwitches = new List<MultiplayerControlSwitch>();
         public List<MultiplayerTriggerSpikes> mTriggerSpikes = new List<MultiplayerTriggerSpikes>();
 
-        public KevinballP1SpawnTrigger p1Spawn = null;
-        public KevinballP2SpawnTrigger p2Spawn = null; 
+        public Vector2 p1Spawn = new Vector2(80, 140);
+        public Vector2 p2Spawn = new Vector2(240, 140);
+        public bool firstSpawns = true; 
 
         public bool PlayingKevinball = false;
         public bool InStartRoutine = false;
@@ -585,7 +586,7 @@ namespace Celeste.Mod.Ghost.Net {
             PlayingKevinball = false;
             KevinHittable = false;
             //level.PauseLock = true; 
-            InKevinballMap = true; 
+            InKevinballMap = true;
             SendULoadedKevinball(PlayerID);
         }
 
@@ -602,32 +603,17 @@ namespace Celeste.Mod.Ghost.Net {
             StartRoutineTimer = 2f;
             StartRoutineState = 3;
 
-            Vector2 p1SpawnV = new Vector2(80f, 140f);
-            Vector2 p2SpawnV = new Vector2(240f, 140f);
-
-            if(p1Spawn != null)
-            {
-                float x = p1Spawn.CenterX;
-                float y = p1Spawn.CenterY;
-                p1SpawnV = new Vector2(x, y);
-            }
-
-            if (p2Spawn != null)
-            {
-                float x = p2Spawn.CenterX;
-                float y = p2Spawn.CenterY;
-                p2SpawnV = new Vector2(x, y);
-            }
-
             if (player1 == PlayerID)
             {
-                Player.Center = p1SpawnV;
+                Player.Center = p1Spawn;
+                Logger.Log("Kevinball", "Moving " + p1Spawn.ToString());
                 Player.StateMachine.ForceState(Player.StFrozen);
             }
 
             else if (player2 == PlayerID)
             {
-                Player.Center = p2SpawnV;
+                Player.Center = p2Spawn;
+                Logger.Log("Kevinball", "Moving " + p2Spawn.ToString());
                 Player.StateMachine.ForceState(Player.StFrozen);
             }
 
@@ -677,7 +663,6 @@ namespace Celeste.Mod.Ghost.Net {
         public virtual Action<Player> OnPlayerTouchSwitch(GhostTouchSwitch touch)
             => player =>
         {
-            Logger.Log(LogLevel.Info, "ghostnet-c", "Running OnPlayerTouchSwitch");
             TouchedGhostSwitch = true; 
             SendUTouchPress((uint)touch.tIdx, PlayerID); 
         };
@@ -1360,7 +1345,6 @@ namespace Celeste.Mod.Ghost.Net {
         public virtual void HandleMKevinballStart(GhostNetConnection con, GhostNetFrame frame)
         {
             ChunkMKevinballStart start = frame;
-            NextKevinballLevel = start.NextLevel; 
             StartKevinballRoutine(start.Player1, start.Player2);
         }
 
@@ -1531,12 +1515,20 @@ namespace Celeste.Mod.Ghost.Net {
 
         public virtual void HandleMKevinballEnd(GhostNetConnection con, GhostNetFrame frame)
         {
+            ChunkMKevinballEnd end = frame;
+            bool nextLevelDiff = false; 
+            if(NextKevinballLevel != end.NextLevel)
+            {
+                NextKevinballLevel = end.NextLevel;
+                nextLevelDiff = true; 
+            }
+
             if (!Player.Dead && lastPlayerDeath > 3f)
                 Player.Die(new Vector2(0, 0));
+            else if(nextLevelDiff)
+                Player.Die(new Vector2(0, 0));
 
-            ChunkMKevinballEnd end = frame; 
-
-            if(end.Wintype == KevinballWin)
+            if (end.Wintype == KevinballWin)
             {
                 Audio.Play("event:/kevinball_kevingoal");
             }
@@ -1545,7 +1537,7 @@ namespace Celeste.Mod.Ghost.Net {
                 int num = Calc.Random.Range(1, 4);
                 string str = "event:/kevinball_ouch_" + num.ToString();
                 Audio.Play(str);
-        }
+            }
         }
 
         public virtual void HandleUAudioPlay(GhostNetConnection con, GhostNetFrame frame) {
@@ -1743,6 +1735,7 @@ namespace Celeste.Mod.Ghost.Net {
         public void OnExitLevel(Level level, LevelExit exit, LevelExit.Mode mode, Session session, HiresSnow snow) {
             Session = null;
             InKevinballMap = false;
+            firstSpawns = true; 
 
             Cleanup();
 
@@ -1768,9 +1761,6 @@ namespace Celeste.Mod.Ghost.Net {
                 LevelData target = Session.MapData.Levels[targetLevel];
                 Session.Level = target.Name;
                 Session.RespawnPoint = target.Spawns[0];
-                Logger.Log("KEVINBALL_SHUFFLE", target.Name);
-                Logger.Log("KEVINBALL_SHUFFLE", target.Spawns[0].ToString());
-                Logger.Log("KEVINBALL_SHUFFLE", targetLevel.ToString());
             }
 
             //This will eventually end up in HandleMKevinballEnd 
